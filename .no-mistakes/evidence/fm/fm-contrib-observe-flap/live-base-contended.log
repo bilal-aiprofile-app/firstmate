@@ -1,0 +1,6 @@
+BASE-contended poll  1 rc=0  8s lookups=0 reads=1 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+BASE-contended poll  2 rc=0  7s lookups=0 reads=1 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+BASE-contended poll  3 rc=0  7s lookups=0 reads=1 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+BASE-contended poll  4 rc=0  9s lookups=0 reads=1 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+BASE-contended poll  5 rc=0  5s lookups=0 reads=1 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+BASE-contended summary: polls=5 wakes=0 contenders=6

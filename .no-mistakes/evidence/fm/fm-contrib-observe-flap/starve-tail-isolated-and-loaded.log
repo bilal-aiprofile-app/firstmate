@@ -1,0 +1,15 @@
+ok - rotation preserves timed-out records and refreshes every slow PR on successive cycles
+SINGLE-PASS
+ok - rotation preserves timed-out records and refreshes every slow PR on successive cycles
+SINGLE-PASS
+
+[exited with code 0]
+== head under 10-core synthetic load (no GH_TOKEN)
+ok - rotation preserves timed-out records and refreshes every slow PR on successive cycles
+SINGLE-PASS
+== base under 10-core synthetic load (no GH_TOKEN)
+ok - rotation preserves timed-out records and refreshes every slow PR on successive cycles
+SINGLE-PASS
+18
+
+[exited with code 0]

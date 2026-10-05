@@ -1,0 +1,10 @@
+BUDGET=10 (slice 3s)                       rc=0  3s lookups=1 reads=8 reads_with_token=8 lookup_to_first_read=1.8s out=[] record={"checked_at":"2026-10-05T23:34:00Z","error":null}
+FM_CHECK_TIMEOUT=18 (budget 15, slice 4s)  rc=0  4s lookups=1 reads=8 reads_with_token=8 lookup_to_first_read=1.5s out=[] record={"checked_at":"2026-10-05T23:34:03Z","error":null}
+BUDGET=10 (slice 3s)                       rc=0  6s lookups=1 reads=8 reads_with_token=8 lookup_to_first_read=2.6s out=[] record={"checked_at":"2026-10-05T23:34:07Z","error":null}
+FM_CHECK_TIMEOUT=18 (budget 15, slice 4s)  rc=0  4s lookups=1 reads=8 reads_with_token=8 lookup_to_first_read=1.7s out=[] record={"checked_at":"2026-10-05T23:34:13Z","error":null}
+BUDGET=10 (slice 3s)                       rc=0  4s lookups=1 reads=8 reads_with_token=8 lookup_to_first_read=1.7s out=[] record={"checked_at":"2026-10-05T23:34:17Z","error":null}
+FM_CHECK_TIMEOUT=18 (budget 15, slice 4s)  rc=0  6s lookups=1 reads=8 reads_with_token=8 lookup_to_first_read=1.8s out=[] record={"checked_at":"2026-10-05T23:34:21Z","error":null}
+GH_TOKEN preset, BUDGET=10                 rc=0  3s lookups=0 reads=8 reads_with_token=8 lookup_to_first_read=n/a out=[] record={"checked_at":"2026-10-05T23:34:28Z","error":null}
+GITHUB_TOKEN preset, default budget        rc=0  2s lookups=0 reads=8 reads_with_token=8 lookup_to_first_read=n/a out=[] record={"checked_at":"2026-10-05T23:34:31Z","error":null}
+GH_TOKEN preset, BUDGET=10                 rc=0  2s lookups=0 reads=8 reads_with_token=8 lookup_to_first_read=n/a out=[] record={"checked_at":"2026-10-05T23:34:33Z","error":null}
+GITHUB_TOKEN preset, default budget        rc=0  2s lookups=0 reads=8 reads_with_token=8 lookup_to_first_read=n/a out=[] record={"checked_at":"2026-10-05T23:34:35Z","error":null}

@@ -1,0 +1,6 @@
+== generated watcher check shim: exec /Users/bshirazi/.no-mistakes/worktrees/750af29daff7/01M4749KVESHBKGJR7E75X8H2F/bin/fm-contributions.sh poll
+check run 1 rc=0 7s lookups=1 reads_with_token=8/8 check_output=[] record={"checked_at":"2026-10-05T23:35:13Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+check run 2 rc=0 4s lookups=1 reads_with_token=8/8 check_output=[] record={"checked_at":"2026-10-05T23:35:20Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+check run 3 rc=0 4s lookups=1 reads_with_token=8/8 check_output=[] record={"checked_at":"2026-10-05T23:35:24Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+check run 4 rc=0 4s lookups=1 reads_with_token=8/8 check_output=[] record={"checked_at":"2026-10-05T23:35:28Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+wake queue: empty

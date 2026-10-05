@@ -1,0 +1,6 @@
+HEAD-contended poll  1 rc=0  5s lookups=1 reads=0 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+HEAD-contended poll  2 rc=0  6s lookups=1 reads=0 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+HEAD-contended poll  3 rc=0  5s lookups=1 reads=0 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+HEAD-contended poll  4 rc=0  6s lookups=1 reads=0 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+HEAD-contended poll  5 rc=0  6s lookups=1 reads=0 reads_with_token=0 out=[] record={"checked_at":"2026-10-05T23:28:35Z","error":null}
+HEAD-contended summary: polls=5 wakes=0 contenders=6
