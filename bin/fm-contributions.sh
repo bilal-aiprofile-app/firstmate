@@ -51,8 +51,12 @@
 # default 30, read from the poll's environment because the watcher runs it as
 # a direct child) with a three-second margin. Every read is capped at five
 # seconds, and a read killed at that bound or at the deadline is budget
-# refusal, never a forge failure. A pull observation has three
-# dependent waves: core, six independent reads, then the closing head read;
+# refusal, never a forge failure. gh otherwise reads its stored credential in
+# every process, and a macOS keychain lookup can take seconds and serializes
+# across a parallel wave, so with neither GH_TOKEN nor GITHUB_TOKEN set, poll
+# resolves the github.com token once, bounded by the budget left beyond the
+# first observation's reserve, and exports it as GH_TOKEN for its reads.
+# A pull observation has three dependent waves: core, six independent reads, then the closing head read;
 # an issue has two waves. Before starting a URL, poll reserves the smaller of
 # the effective budget and 15 seconds for those waves. URLs needing forge
 # reads are sorted by URL and rotated by the current five-minute epoch bucket
@@ -233,6 +237,23 @@ forge() {
   return "$rc"
 }
 
+forge_token() { # resolve gh's stored github.com credential once for every read
+  local remaining token
+  # An environment token already skips gh's stored-credential lookup.
+  [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ] || return 0
+  # Spend only budget the first observation's reserve does not need.
+  remaining=$((DEADLINE - $(date +%s) - OBSERVATION_RESERVE))
+  [ "$remaining" -gt 0 ] || return 0
+  [ "$remaining" -le 5 ] || remaining=5
+  # Without a token here each read falls back to its own lookup, as before.
+  token=$(fm_run_timed "$remaining" env GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 \
+    gh auth token --hostname github.com 2>/dev/null) || return 0
+  [ -n "$token" ] || return 0
+  # Exported, never passed as an argument, so it stays out of process listings.
+  GH_TOKEN=$token
+  export GH_TOKEN
+}
+
 wait_forges() { # background forge pids from one independent read wave
   local pid rc=0
   for pid in "$@"; do wait "$pid" || rc=1; done
@@ -391,6 +412,7 @@ poll() {
     | .[]' < "$TMP/live.tsv" > "$TMP/known.tsv"
   DEADLINE=$(( $(date +%s) + BUDGET ))
   OBSERVATION_RESERVE=$((BUDGET < 15 ? BUDGET : 15))
+  [ ! -s "$TMP/known.tsv" ] || forge_token
   while IFS=$'\t' read -r -a row; do
     [ $((DEADLINE - $(date +%s))) -ge "$OBSERVATION_RESERVE" ] || break
     url=${row[0]}
