@@ -54,11 +54,13 @@
 # refusal, never a forge failure. gh otherwise reads its stored credential in
 # every process, and a macOS keychain lookup can take seconds and serializes
 # across a parallel wave, so with neither GH_TOKEN nor GITHUB_TOKEN set, poll
-# resolves the github.com token once, bounded by the budget left beyond the
-# first observation's reserve, and exports it as GH_TOKEN for its reads.
+# first resolves the github.com token once within its own slice of the
+# effective budget (a quarter, at most five seconds) and exports it as
+# GH_TOKEN for its reads. When that lookup fails or times out, every read of
+# the poll is budget refusal: no read falls back to its own credential lookup.
 # A pull observation has three dependent waves: core, six independent reads, then the closing head read;
 # an issue has two waves. Before starting a URL, poll reserves the smaller of
-# the effective budget and 15 seconds for those waves. URLs needing forge
+# the effective budget less the lookup slice and 15 seconds for those waves. URLs needing forge
 # reads are sorted by URL and rotated by the current five-minute epoch bucket
 # modulo their count, without stored scheduling state or freshness-based
 # reordering. Terminal URLs settle separately before the forge budget starts
@@ -221,8 +223,13 @@ write_record() { # task record-json-file
 forge() {
   local remaining rc=0 forge_err=${FORGE_ERR:-$TMP/forge.err}
   remaining=$((DEADLINE - $(date +%s)))
-  # The budget, not the forge, refused this read.
-  [ "$remaining" -gt 0 ] || { BUDGET_EXHAUSTED=1; : > "$TMP/budget-exhausted"; return 1; }
+  # The budget, not the forge, refused this read, as it does every read once
+  # the poll's one credential lookup has failed.
+  if [ "$remaining" -le 0 ] || [ -z "${GH_TOKEN:-}${GITHUB_TOKEN:-}" ]; then
+    BUDGET_EXHAUSTED=1
+    : > "$TMP/budget-exhausted"
+    return 1
+  fi
   [ "$remaining" -le 5 ] || remaining=5
   fm_run_timed "$remaining" env GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 \
     gh "$@" 2> "$forge_err" || rc=$?
@@ -238,15 +245,11 @@ forge() {
 }
 
 forge_token() { # resolve gh's stored github.com credential once for every read
-  local remaining token
+  local token
   # An environment token already skips gh's stored-credential lookup.
   [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ] || return 0
-  # Spend only budget the first observation's reserve does not need.
-  remaining=$((DEADLINE - $(date +%s) - OBSERVATION_RESERVE))
-  [ "$remaining" -gt 0 ] || return 0
-  [ "$remaining" -le 5 ] || remaining=5
-  # Without a token here each read falls back to its own lookup, as before.
-  token=$(fm_run_timed "$remaining" env GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 \
+  # Without a token here forge refuses every read of this poll.
+  token=$(fm_run_timed "$TOKEN_SLICE" env GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 \
     gh auth token --hostname github.com 2>/dev/null) || return 0
   [ -n "$token" ] || return 0
   # Exported, never passed as an argument, so it stays out of process listings.
@@ -411,7 +414,9 @@ poll() {
     [inputs] | if length == 0 then . else ($bucket % length) as $offset | .[$offset:] + .[:$offset] end
     | .[]' < "$TMP/live.tsv" > "$TMP/known.tsv"
   DEADLINE=$(( $(date +%s) + BUDGET ))
-  OBSERVATION_RESERVE=$((BUDGET < 15 ? BUDGET : 15))
+  TOKEN_SLICE=$(((BUDGET + 3) / 4))
+  [ "$TOKEN_SLICE" -le 5 ] || TOKEN_SLICE=5
+  OBSERVATION_RESERVE=$((BUDGET - TOKEN_SLICE < 15 ? BUDGET - TOKEN_SLICE : 15))
   [ ! -s "$TMP/known.tsv" ] || forge_token
   while IFS=$'\t' read -r -a row; do
     [ $((DEADLINE - $(date +%s))) -ge "$OBSERVATION_RESERVE" ] || break
