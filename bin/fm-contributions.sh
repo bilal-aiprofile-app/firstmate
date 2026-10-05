@@ -58,11 +58,12 @@
 # effective budget (a quarter, at most five seconds) and exports it as
 # GH_TOKEN for its reads. When that lookup fails or times out, every read of
 # the poll is budget refusal: no read falls back to its own credential lookup.
-# A pull observation has three dependent waves: core, six independent reads, then the closing head read;
-# an issue has two waves. Before starting a URL, poll reserves the smaller of
-# the effective budget less the lookup slice and 15 seconds for those waves. URLs needing forge
-# reads are sorted by URL and rotated by the current five-minute epoch bucket
-# modulo their count, without stored scheduling state or freshness-based
+# A pull observation has three dependent waves: core, six independent reads,
+# then the closing head read; an issue has two waves. Before starting a URL,
+# poll reserves 15 seconds for those waves, or the effective budget minus the
+# lookup slice when that is smaller. URLs needing forge reads are sorted by
+# URL and rotated by the current five-minute epoch bucket modulo their count,
+# without stored scheduling state or freshness-based
 # reordering. Terminal URLs settle separately before the forge budget starts
 # and consume no rotation slots.
 # A deliberately smaller configured budget remains bounded and may be
