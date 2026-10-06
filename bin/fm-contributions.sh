@@ -63,9 +63,9 @@
 # poll reserves 15 seconds for those waves, or the effective budget minus the
 # lookup slice when that is smaller. URLs needing forge reads are sorted by
 # URL and rotated by the current five-minute epoch bucket modulo their count,
-# without stored scheduling state or freshness-based
-# reordering. Terminal URLs settle separately before the forge budget starts
-# and consume no rotation slots.
+# without stored scheduling state or freshness-based reordering. Terminal URLs
+# settle separately before the forge budget starts and consume no rotation
+# slots.
 # A deliberately smaller configured budget remains bounded and may be
 # unmeasured, rather than being mislabeled unavailable. Each distinct URL is
 # attempted at most once per poll and its observation applied to every owner.
