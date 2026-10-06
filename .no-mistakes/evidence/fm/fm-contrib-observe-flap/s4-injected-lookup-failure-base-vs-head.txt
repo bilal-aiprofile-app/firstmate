@@ -1,0 +1,32 @@
+== base poll, credential lookup fail + reads lack a stored login  rc=0  elapsed=0s
+stdout/stderr: contributions: observation unavailable for https://github.com/kunchenguid/firstmate/pull/5442
+gh auth token lookups: 0   api/pr reads: 1   reads without env token: 1
+{"checked_at":"2026-10-06T22:48:55Z","error":"forge observation unavailable or changed during read","head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+record unchanged vs prior: NO (rewritten)
+gh calls made:
+  token=	api repos/kunchenguid/firstmate/pulls/5442
+== base poll, credential lookup hang + reads lack a stored login  rc=0  elapsed=0s
+stdout/stderr: contributions: observation unavailable for https://github.com/kunchenguid/firstmate/pull/5442
+gh auth token lookups: 0   api/pr reads: 1   reads without env token: 1
+{"checked_at":"2026-10-06T22:48:55Z","error":"forge observation unavailable or changed during read","head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+record unchanged vs prior: NO (rewritten)
+gh calls made:
+  token=	api repos/kunchenguid/firstmate/pulls/5442
+== head poll, credential lookup fail + reads lack a stored login  rc=0  elapsed=1s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 0   reads without env token: 0
+{"checked_at":"2026-10-06T20:00:00Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+record unchanged vs prior: yes
+gh calls made:
+  token=	auth token --hostname github.com
+== head poll, credential lookup hang + reads lack a stored login  rc=0  elapsed=5s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 0   reads without env token: 0
+{"checked_at":"2026-10-06T20:00:00Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+record unchanged vs prior: yes
+gh calls made:
+  token=	auth token --hostname github.com

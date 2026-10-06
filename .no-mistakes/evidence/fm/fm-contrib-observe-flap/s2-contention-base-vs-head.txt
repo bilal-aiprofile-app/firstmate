@@ -1,0 +1,50 @@
+== base poll #1 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=10s
+stdout/stderr: <empty>
+gh auth token lookups: 0   api/pr reads: 7   reads without env token: 7
+{"checked_at":"2026-10-06T22:46:33Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll #1 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=5s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 0   reads without env token: 0
+{"checked_at":"2026-10-06T22:46:33Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== base poll #2 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=10s
+stdout/stderr: <empty>
+gh auth token lookups: 0   api/pr reads: 7   reads without env token: 7
+{"checked_at":"2026-10-06T22:46:33Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll #2 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=6s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 0   reads without env token: 0
+{"checked_at":"2026-10-06T22:46:33Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== base poll #3 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=5s
+stdout/stderr: <empty>
+gh auth token lookups: 0   api/pr reads: 1   reads without env token: 1
+{"checked_at":"2026-10-06T22:46:33Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll #3 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=6s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 8   reads without env token: 0
+{"checked_at":"2026-10-06T22:47:26Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== base poll #4 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=9s
+stdout/stderr: <empty>
+gh auth token lookups: 0   api/pr reads: 7   reads without env token: 7
+{"checked_at":"2026-10-06T22:47:26Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll #4 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=6s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 0   reads without env token: 0
+{"checked_at":"2026-10-06T22:47:26Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== base poll #5 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=10s
+stdout/stderr: <empty>
+gh auth token lookups: 0   api/pr reads: 7   reads without env token: 7
+{"checked_at":"2026-10-06T22:47:26Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll #5 under keychain contention (6 parallel gh auth token loops)  rc=0  elapsed=6s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 0   reads without env token: 0
+{"checked_at":"2026-10-06T22:47:26Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0

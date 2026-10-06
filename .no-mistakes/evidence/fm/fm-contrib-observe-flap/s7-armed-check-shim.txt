@@ -1,0 +1,15 @@
+$ FM_HOME=$LAB bin/fm-contributions.sh arm
+registered: state/contributions.check.sh
+rc=0
+--- generated state/contributions.check.sh:
+#!/usr/bin/env bash
+export FM_HOME=$LAB
+export FM_STATE_OVERRIDE=$LAB/state
+export FM_DATA_OVERRIDE=$LAB/data
+exec $WT/bin/fm-contributions.sh poll
+== armed check run #1 (watcher-style child, FM_CHECK_TIMEOUT=30, no env token) rc=0 elapsed=4s output=<empty> credential lookups=1 reads=8
+{"checked_at":"2026-10-06T22:50:10Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+== armed check run #2 (watcher-style child, FM_CHECK_TIMEOUT=30, no env token) rc=0 elapsed=3s output=<empty> credential lookups=1 reads=8
+{"checked_at":"2026-10-06T22:50:13Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+== armed check run #3 (watcher-style child, FM_CHECK_TIMEOUT=30, no env token) rc=0 elapsed=3s output=<empty> credential lookups=1 reads=8
+{"checked_at":"2026-10-06T22:50:16Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}

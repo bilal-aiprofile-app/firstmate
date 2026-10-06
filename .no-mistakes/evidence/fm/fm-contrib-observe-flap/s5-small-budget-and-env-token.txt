@@ -1,0 +1,35 @@
+== head poll, small effective budget FM_CONTRIBUTIONS_BUDGET=10, no env token  rc=0  elapsed=3s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 8   reads without env token: 0
+{"checked_at":"2026-10-06T22:49:09Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll, small effective budget FM_CONTRIBUTIONS_BUDGET=5, no env token  rc=0  elapsed=3s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 8   reads without env token: 0
+{"checked_at":"2026-10-06T22:49:12Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll, small effective budget FM_CHECK_TIMEOUT=18, no env token  rc=0  elapsed=3s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 8   reads without env token: 0
+{"checked_at":"2026-10-06T22:49:15Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll, small effective budget FM_CHECK_TIMEOUT=10, no env token  rc=0  elapsed=4s
+stdout/stderr: <empty>
+gh auth token lookups: 1   api/pr reads: 8   reads without env token: 0
+{"checked_at":"2026-10-06T22:49:18Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+== head poll, GH_TOKEN preset in the environment  rc=0  elapsed=2s
+stdout/stderr: <empty>
+gh auth token lookups: 0   api/pr reads: 8   reads without env token: 0
+{"checked_at":"2026-10-06T22:49:23Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+wake-queue lines: 0
+gh calls made:
+  token=env	api repos/kunchenguid/firstmate/pulls/5442
+  token=env	api repos/kunchenguid/firstmate/pulls/5442/comments?per_page=100 --paginate --slurp
+  token=env	api repos/kunchenguid/firstmate/issues/5442/comments?per_page=100 --paginate --slurp
+  token=env	api repos/kunchenguid/firstmate/commits/407b16a058993dbda1603553d6306928d60d58dd/check-runs?filter=all&per_page=100 --paginate --slurp
+  token=env	api repos/kunchenguid/firstmate/commits/407b16a058993dbda1603553d6306928d60d58dd/statuses?per_page=100 --paginate --slurp
+  token=env	api repos/kunchenguid/firstmate/pulls/5442/reviews?per_page=100 --paginate --slurp
+  token=env	api repos/kunchenguid/firstmate
+  token=env	pr view https://github.com/kunchenguid/firstmate/pull/5442 --json headRefOid,reviewDecision
+token absent from lab data/ and state/: yes
