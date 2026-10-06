@@ -216,6 +216,87 @@ test_refusing_injector_stops_the_spawn() {
   pass "a refusing injector stops the spawn with its exit status and never starts the worker"
 }
 
+test_stopped_spawn_takes_the_claim_and_closes_the_pane() {
+  local id=term-a1 out_file pid i
+  make_case term pi "$id"
+  write_config pi
+  out_file="$CASE_DIR/spawn.out"
+  FAKE_AV_MODE=slow FAKE_AV_DELAY=3 TIMEOUT=60 run_spawn "$id" > "$out_file" 2>&1 &
+  pid=$!
+  i=0
+  until grep -q "$FAKEBIN/av" "$LAUNCH_LOG" 2>/dev/null || [ "$i" -ge 200 ]; do
+    sleep 0.05
+    i=$((i + 1))
+  done
+  sleep 1
+  pkill -TERM -f "bin/fm-spawn.sh $id " || fail "the spawn was not waiting on the approval: $(cat "$out_file")"
+  wait "$pid"
+  [ -e "$PANE_OUT.closed" ] || fail "a spawn stopped mid-approval must close the worker's endpoint: $(cat "$out_file")"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "a spawn stopped mid-approval must not leave a task record"
+  i=0
+  until grep -q 'spawn already gave up' "$PANE_OUT" 2>/dev/null || [ "$i" -ge 100 ]; do
+    sleep 0.05
+    i=$((i + 1))
+  done
+  assert_contains "$(cat "$PANE_OUT")" 'spawn already gave up' \
+    "a late approval must not start the worker of a spawn that was stopped"
+  [ ! -s "$PROBE_LOG" ] || fail "a late approval started an orphaned worker: $(cat "$PROBE_LOG")"
+  pass "a spawn stopped during the approval takes the claim, so the late approval cannot start an orphan"
+}
+
+# The fake pi answers the pin's sign-in check the way the real one does: an
+# OPENROUTER_API_KEY in its environment signs the openrouter provider in
+# (tests/fm-worker-account-live-e2e.test.sh proves that for real Pi).
+install_pinned_pi() {  # <fakebin> <record-file> <check-file>
+  cat > "$1/pi" <<SH
+#!/bin/sh
+case "\${1:-}" in
+  --help|--version) exit 0 ;;
+  auth)
+    printf 'check secret=%s\n' "\${OPENROUTER_API_KEY-unset}" >> '$3'
+    if [ "\$4" = openrouter ] && [ -n "\${OPENROUTER_API_KEY:-}" ]; then
+      printf '{"status":"ready","provider":"openrouter"}\n'
+      exit 0
+    fi
+    printf '{"status":"not_ready","provider":"%s","reason":"credentials_not_configured"}\n' "\$4"
+    exit 1
+    ;;
+  --list-models) printf 'provider  model  context\n'; exit 0 ;;
+esac
+printf 'started secret=%s\n' "\${OPENROUTER_API_KEY-unset}" >> '$2'
+SH
+  chmod +x "$1/pi"
+}
+
+test_pinned_pi_account_counts_the_injected_key() {
+  local names id out status checks
+  for names in '["OPENROUTER_API_KEY"]' '["OTHER_KEY"]'; do
+    id="pin-$( [ "$names" = '["OPENROUTER_API_KEY"]' ] && echo inj || echo other )-a1"
+    make_case "$id" pi "$id"
+    checks="$CASE_DIR/checks.log"
+    install_pinned_pi "$FAKEBIN" "$PROBE_LOG" "$checks"
+    mkdir -p "$CASE_DIR/pi-root"
+    printf '%s\nopenrouter\n' "$CASE_DIR/pi-root" > "$HOME_DIR/config/pi-account"
+    write_config pi "$names"
+    out=$(OPENROUTER_API_KEY= run_spawn "$id" --model openrouter/z-ai/glm-5.3)
+    status=$?
+    assert_secret_not_leaked "$id" "$out" "pin $names"
+    assert_not_contains "$(cat "$checks" 2>/dev/null)" "$SECRET_VALUE" \
+      "pin $names: the sign-in check must never receive the secret value"
+    if [ "$names" = '["OPENROUTER_API_KEY"]' ]; then
+      expect_code 0 "$status" "a pinned Pi spawn whose provider key is injected should pass the sign-in check: $out"
+      wait_for_probe 1 || fail "pinned pi: the worker never started; pane output: $(cat "$PANE_OUT")"
+      assert_equals "started secret=$SECRET_VALUE" "$(cat "$PROBE_LOG")" \
+        "the pinned Pi worker must start with the injected provider key"
+    else
+      [ "$status" -ne 0 ] || fail "a pinned Pi spawn whose injected names do not sign its provider in must refuse: $out"
+      assert_contains "$out" "not signed in for provider 'openrouter'" "the refusal must name the provider"
+      [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "the refusal must come before any task record exists"
+    fi
+  done
+  pass "a pinned Pi account's sign-in check counts the provider key the launch injects, and only that"
+}
+
 test_invalid_timeout_refuses_before_any_record() {
   local out status
   make_case bad-timeout pi bad-timeout-a1
@@ -356,59 +437,82 @@ SH
   chmod +x "$1/tmux"
 }
 
-test_relaunch_injects_the_secret() {
-  local id=relaunch-a1 dir home proj wt fb out status probe pane
-  dir="$TMP_ROOT/relaunch"
-  home="$dir/home"
-  proj="$dir/proj"
-  wt="$dir/wt"
-  fb="$dir/fakebin"
-  probe="$dir/probe.log"
-  pane="$dir/pane.out"
-  mkdir -p "$home/state" "$home/data" "$home/config" "$home/projects" "$dir/fake" "$fb" "$dir/user-home"
-  touch "$home/state/.last-watcher-beat"
-  printf '{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"codex": ["OPENROUTER_API_KEY"]}}\n' \
-    > "$home/config/launch-secrets.json"
-  make_relaunch_stub "$fb" "$dir/fake" "$pane"
-  install_fake_av "$fb"
-  install_probe "$fb" codex "$probe"
-  fm_git_worktree "$proj" "$wt" wt-relaunch
-  fm_test_spawn_brief "$home" "$id"
-  : > "$dir/fake/literal"
-  : > "$pane"
-  printf 'codex' > "$dir/fake/command"
-  printf '%s\n' "fm-$id" > "$dir/fake/windows"
-  printf '%s' "$wt" > "$dir/fake/cwd"
+# setup_relaunch <name> <id> -> sets R_DIR R_HOME R_WT R_FB R_PROBE R_PANE
+setup_relaunch() {
+  local name=$1 id=$2 proj
+  R_DIR="$TMP_ROOT/$name"
+  R_HOME="$R_DIR/home"
+  proj="$R_DIR/proj"
+  R_WT="$R_DIR/wt"
+  R_FB="$R_DIR/fakebin"
+  R_PROBE="$R_DIR/probe.log"
+  R_PANE="$R_DIR/pane.out"
+  mkdir -p "$R_HOME/state" "$R_HOME/data" "$R_HOME/config" "$R_HOME/projects" "$R_DIR/fake" "$R_FB" "$R_DIR/user-home"
+  touch "$R_HOME/state/.last-watcher-beat"
+  make_relaunch_stub "$R_FB" "$R_DIR/fake" "$R_PANE"
+  install_fake_av "$R_FB"
+  install_probe "$R_FB" codex "$R_PROBE"
+  fm_git_worktree "$proj" "$R_WT" "wt-$name"
+  fm_test_spawn_brief "$R_HOME" "$id"
+  : > "$R_DIR/fake/literal"
+  : > "$R_PANE"
+  printf 'codex' > "$R_DIR/fake/command"
+  printf '%s\n' "fm-$id" > "$R_DIR/fake/windows"
+  printf '%s' "$R_WT" > "$R_DIR/fake/cwd"
   {
     echo "window=fmses:fm-$id"
     echo "endpoint_task_id=$id"
-    echo "worktree=$wt"
+    echo "worktree=$R_WT"
     echo "project=$proj"
     echo "harness=codex"
     echo "kind=ship"
     echo "mode=no-mistakes"
     echo "yolo=off"
-    echo "tasktmp=$dir/tasktmp"
+    echo "tasktmp=$R_DIR/tasktmp"
     echo "model=default"
     echo "effort=default"
-  } > "$home/state/$id.meta"
+  } > "$R_HOME/state/$id.meta"
+}
 
-  out=$(env PATH="$fb:$PATH" FM_HOME="$home" HOME="$dir/user-home" CLAUDE_CONFIG_DIR='' \
+run_relaunch() {  # <id>
+  env PATH="$R_FB:$PATH" FM_HOME="$R_HOME" HOME="$R_DIR/user-home" CLAUDE_CONFIG_DIR='' \
     FM_SPAWN_NO_GUARD=1 FAKE_AV_SECRET="$SECRET_VALUE" \
     FM_LAUNCH_SECRETS_TIMEOUT=20 FM_LAUNCH_SECRETS_POLL=0.05 \
     FM_CONTROL_POLL=0.01 FM_CONTROL_EXIT_WAIT=0.05 FM_CONTROL_LAUNCH_WAIT=0.05 \
-    "$CONTROL" "$id" relaunch --note 'replacement continues the same task' 2>&1)
+    "$CONTROL" "$1" relaunch --note 'replacement continues the same task' 2>&1
+}
+
+test_relaunch_injects_the_secret() {
+  local id=relaunch-a1 out status
+  setup_relaunch relaunch "$id"
+  printf '{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"codex": ["OPENROUTER_API_KEY"]}}\n' \
+    > "$R_HOME/config/launch-secrets.json"
+  out=$(run_relaunch "$id")
   status=$?
   expect_code 0 "$status" "relaunch with launch secrets should succeed: $out"
-  assert_contains "$(cat "$dir/fake/literal")" "'$fb/av' 'inject' '+OPENROUTER_API_KEY' '--'" \
+  assert_contains "$(cat "$R_DIR/fake/literal")" "'$R_FB/av' 'inject' '+OPENROUTER_API_KEY' '--'" \
     "the replacement launch must run inside the configured injector"
-  PROBE_LOG=$probe
-  wait_for_probe 1 || fail "relaunch: the replacement worker never started; pane output: $(cat "$pane")"
-  assert_equals "started secret=$SECRET_VALUE" "$(cat "$probe")" \
+  PROBE_LOG=$R_PROBE
+  wait_for_probe 1 || fail "relaunch: the replacement worker never started; pane output: $(cat "$R_PANE")"
+  assert_equals "started secret=$SECRET_VALUE" "$(cat "$R_PROBE")" \
     "the replacement worker must start with the injected secret"
-  HOME_DIR=$home LAUNCH_LOG="$dir/fake/literal" PANE_OUT=$pane \
+  HOME_DIR=$R_HOME LAUNCH_LOG="$R_DIR/fake/literal" PANE_OUT=$R_PANE \
     assert_secret_not_leaked "$id" "$out" relaunch
   pass "relaunch rebuilds the launch inside the injector and the replacement worker gets the secret"
+}
+
+test_relaunch_refuses_a_broken_secrets_file_before_stopping_the_agent() {
+  local id=relaunch-bad-a1 out status
+  setup_relaunch relaunch-bad "$id"
+  printf '{"injector": ["av", "inject", "--"], "harnesses": {"codex": ["OPENROUTER_API_KEY"]}}\n' \
+    > "$R_HOME/config/launch-secrets.json"
+  out=$(run_relaunch "$id")
+  status=$?
+  [ "$status" -ne 0 ] || fail "relaunch with a malformed launch-secrets file must refuse: $out"
+  assert_contains "$out" 'config/launch-secrets.json must be' "the refusal must name the schema"
+  assert_equals '' "$(cat "$R_DIR/fake/literal")" "the running agent must not be stopped or relaunched"
+  assert_equals codex "$(cat "$R_DIR/fake/command")" "the running agent must keep running"
+  pass "relaunch refuses a malformed launch-secrets file before it stops the running agent"
 }
 
 test_absent_config_is_unchanged
@@ -416,9 +520,12 @@ test_other_harness_is_unchanged
 test_configured_injects_the_secret
 test_every_listed_name_is_injected
 test_refusing_injector_stops_the_spawn
+test_stopped_spawn_takes_the_claim_and_closes_the_pane
+test_pinned_pi_account_counts_the_injected_key
 test_invalid_timeout_refuses_before_any_record
 test_muse_injected_key_satisfies_the_credential_preflight
 test_slow_injector_times_out_and_cannot_start_late
 test_missing_injector_refuses_before_any_record
 test_malformed_config_refuses
 test_relaunch_injects_the_secret
+test_relaunch_refuses_a_broken_secrets_file_before_stopping_the_agent

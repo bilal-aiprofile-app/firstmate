@@ -333,8 +333,10 @@
 #   stops with the concrete reason - the pane's last lines captured, then the
 #   endpoint closed and failed: appended to the task status - when the injector
 #   refuses or does not start it within FM_LAUNCH_SECRETS_TIMEOUT seconds
-#   (default 300; a non-integer refuses before any mutation). A muse entry
-#   naming META_API_KEY satisfies muse's credential preflight. Under this
+#   (default 300; a non-integer refuses before any mutation). A spawn that is
+#   itself stopped while it waits takes the claim and closes the endpoint the
+#   same way. A muse entry naming META_API_KEY satisfies muse's credential
+#   preflight, and a pinned Pi account's sign-in check counts injected names. Under this
 #   opt-in the launch runs through /bin/sh -c, so raw commands must be POSIX sh.
 #   bin/fm-launch-secrets-lib.sh owns parsing, wrapping, and the handshake;
 #   docs/configuration.md "Worker launch secrets" owns the schema.
@@ -1262,6 +1264,7 @@ CONFIG_INHERIT_LOCK_HELD=0
 GIT_HOOKS_DIR=
 SPAWN_LAUNCH_SENT=0
 SPAWN_ENDPOINT_CLOSED=0
+LAUNCH_SECRETS_PENDING=0
 
 spawn_fresh_commit_rollback() {
   if fm_backlog_atomic_transition rollback "$STATE/$ID.meta" \
@@ -1292,6 +1295,10 @@ parse_orca_worktree_result() {
 
 spawn_abort_cleanup() {
   local status=$?
+  if [ "$LAUNCH_SECRETS_PENDING" = 1 ]; then
+    LAUNCH_SECRETS_PENDING=0
+    ! mkdir "$LAUNCH_SECRETS_CLAIM" 2>/dev/null || rovo_endpoint_cleanup
+  fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&
     [ -n "$SPAWN_META_TMP" ] &&
@@ -2452,14 +2459,15 @@ fi
 # trust registration below writes the store the worker will actually read.
 RAW_COMMAND=
 [ "$RAW_LAUNCH" = 0 ] || RAW_COMMAND=$ARG3
-WORKER_ACCOUNT=$(fm_worker_account_select "$HARNESS" "$CONFIG" "$MODEL" "${PI_BIN:-$HARNESS}" "$RAW_COMMAND") || exit 1
+# Launch secrets (header above): resolved before the account pin, whose Pi
+# sign-in check counts the names they inject, and before any endpoint,
+# worktree, or record exists.
+fm_launch_secrets_load "$CONFIG" "$HARNESS" || exit 1
+WORKER_ACCOUNT=$(fm_worker_account_select "$HARNESS" "$CONFIG" "$MODEL" "${PI_BIN:-$HARNESS}" "$RAW_COMMAND" "$FM_LAUNCH_SECRETS_NAMES") || exit 1
 WORKER_ACCOUNT_DECLARED=${WORKER_ACCOUNT%%$'\t'*}
 WORKER_ACCOUNT_ROOT=${WORKER_ACCOUNT#*$'\t'}
 WORKER_ACCOUNT_PROVIDER=${WORKER_ACCOUNT_ROOT#*$'\t'}
 WORKER_ACCOUNT_ROOT=${WORKER_ACCOUNT_ROOT%%$'\t'*}
-# Launch secrets (header above): resolved alongside the account pin, before
-# any endpoint, worktree, or record exists.
-fm_launch_secrets_load "$CONFIG" "$HARNESS" || exit 1
 if [ -n "$WORKER_ACCOUNT" ] && [ "$HARNESS" = claude ]; then
   if [ -n "$WORKER_ACCOUNT_ROOT" ]; then
     export CLAUDE_CONFIG_DIR=$WORKER_ACCOUNT_ROOT
@@ -5455,6 +5463,7 @@ if ! (umask 077 && printf '%s\n' "$LAUNCH" >"$LAUNCH_STAGE" &&
 fi
 sleep 0.3
 SPAWN_LAUNCH_SENT=1
+[ -z "$FM_LAUNCH_SECRETS_NAMES" ] || LAUNCH_SECRETS_PENDING=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"
 sleep 0.3
 if [ "${HERDR_PROJECTED:-0}" -eq 1 ]; then
@@ -5463,8 +5472,11 @@ if [ "${HERDR_PROJECTED:-0}" -eq 1 ]; then
 fi
 spawn_send_key "$T" Enter
 if [ -n "$FM_LAUNCH_SECRETS_NAMES" ]; then
-  if ! LAUNCH_SECRETS_FAILURE=$(fm_launch_secrets_wait "$LAUNCH_SECRETS_CLAIM" \
-    "$LAUNCH_SECRETS_REFUSED" "$FM_LAUNCH_SECRETS_TIMEOUT"); then
+  LAUNCH_SECRETS_WAIT_STATUS=0
+  LAUNCH_SECRETS_FAILURE=$(fm_launch_secrets_wait "$LAUNCH_SECRETS_CLAIM" \
+    "$LAUNCH_SECRETS_REFUSED" "$FM_LAUNCH_SECRETS_TIMEOUT") || LAUNCH_SECRETS_WAIT_STATUS=$?
+  LAUNCH_SECRETS_PENDING=0
+  if [ "$LAUNCH_SECRETS_WAIT_STATUS" -ne 0 ]; then
     LAUNCH_SECRETS_PANE=$(fm_launch_secrets_pane_reason "$(fm_backend_capture "$BACKEND" "$T" 40 "$W" 2>/dev/null)")
     [ -z "$LAUNCH_SECRETS_PANE" ] || LAUNCH_SECRETS_FAILURE="$LAUNCH_SECRETS_FAILURE; the pane last showed: $LAUNCH_SECRETS_PANE"
     LAUNCH_SECRETS_FAILURE="$LAUNCH_SECRETS_FAILURE; the $HARNESS worker for $ID was not started, because it never launches without its secrets ($FM_LAUNCH_SECRETS_NAMES)"

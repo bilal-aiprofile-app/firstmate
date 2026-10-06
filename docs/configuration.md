@@ -882,6 +882,7 @@ The refusal names the variable; remove that assignment from the raw command, or 
 
 Before any worker endpoint, local copy, or task record exists, and before a relaunch stops the running worker, Firstmate asks the runner itself whether the pinned account is signed in: `claude auth status` for Claude, and `pi auth check --provider <provider> --json --no-refresh` for Pi, falling back to `pi --list-models <provider>` for a provider an extension registers.
 The check runs with only `HOME`, `PATH`, `TMPDIR`, `USER`, `LOGNAME`, and the pinned root in its environment, so a credential variable in firstmate's own environment cannot answer for an empty root.
+The one addition is a Pi launch's [worker launch secrets](#worker-launch-secrets-configlaunch-secretsjson): the worker starts with those names set, so the Pi check sees each with a placeholder value, never the secret, and Pi's own provider mapping decides whether, for example, an injected `OPENROUTER_API_KEY` signs `openrouter` in.
 
 A pinned Claude launch also unsets the environment credentials Claude ranks above a stored login, such as `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, and the Bedrock and Vertex switches ([authentication precedence](https://code.claude.com/docs/en/authentication#authentication-precedence)).
 Pi ranks a root's stored logins above environment variables, so a pinned Pi launch unsets nothing.
@@ -1028,13 +1029,14 @@ Changes apply to subsequent launches, including relaunches; running workers keep
 - The first element is the injector command, resolved from `PATH` when the worker is spawned, and cannot contain `{name}`.
 - `harnesses` maps a harness name, as resolved for the launch, to the distinct environment variable names to inject.
 
-A malformed file, an unreadable file, or an injector that is not installed stops the spawn before any worker, local copy, or record exists.
+A malformed file, an unreadable file, or an injector that is not installed stops the spawn before any worker, local copy, or record exists, and stops a relaunch before it stops the running worker.
 
 ### Launch and refusal
 
 The worker command runs under `/bin/sh -c` inside the injector, so a raw launch command must be POSIX `sh`; with `config/launch-env-allowlist` enabled, the injected names are forwarded through the filtered environment automatically.
 The spawn then waits for the injected worker to start.
 If the injector refuses, for example when a vault approval is denied, or does not start the worker within `FM_LAUNCH_SECRETS_TIMEOUT` seconds (default 300, enough for an approval prompt), the spawn captures the pane's last three non-empty lines, closes the worker's endpoint, records `failed:` with the injector's exit status or the timeout and those lines in the task status, prints the same reason, and exits non-zero; an approval that lands after that timeout cannot start the worker.
+A spawn that is itself stopped while it waits, for example by its caller's timeout, takes the same claim and closes the endpoint on exit, so a later approval cannot start a worker no task record describes.
 The captured lines carry the injector's own message, such as a denied approval or a missing secret, because the pane itself is gone once the spawn fails.
 A `FM_LAUNCH_SECRETS_TIMEOUT` that is not a non-negative integer stops the spawn before any worker, local copy, or record exists.
 
