@@ -9,7 +9,7 @@ Start with the directory layout, then use the setting reference for the behavior
 | --- | --- |
 | Firstmate's code, private files, or project location | [FM_HOME](#fm_home) and [operational home layout](#operational-home-layout-and-state) |
 | Task windows and worker tools | [Runtime backend](#runtime-backend-configbackend--fm_backend) and [harness support](#harness-support) |
-| Worker permissions, accounts, or environment | [Claude permission mode](#claude-permission-mode-configclaude-permission-mode), [worker account pin](#worker-account-pin-configclaude-account-configpi-account), and [worker launch environment](#worker-launch-environment-configlaunch-env-allowlist) |
+| Worker permissions, accounts, or environment | [Claude permission mode](#claude-permission-mode-configclaude-permission-mode), [worker account pin](#worker-account-pin-configclaude-account-configpi-account), [worker launch environment](#worker-launch-environment-configlaunch-env-allowlist), and [worker launch secrets](#worker-launch-secrets-configlaunch-secretsjson) |
 | Backlog, preferences, and memory | [Backlog backend](#backlog-backend-taskstoml--configbacklog-backend), [captain preferences](#captain-preferences-datacaptainmd--datacaptain-sharedmd), and [startup memory budget](#startup-memory-budget-configstartup-memory-budget) |
 | Supervision and presentation | [Pi supervision branch](#pi-supervision-branch), [supervision host](#supervision-host-configsupervision-host), and [Calm preference](#calm-preference-configcalm) |
 | Persistent secondmates | [Secondmate routes](#secondmate-routes-datasecondmatesmd) |
@@ -1001,6 +1001,43 @@ A repository whose config sets `core.hooksPath` to the empty string runs no proj
 When stripping is enabled, the hooks directory is read-only, so a hook manager run inside a fleet pane (lefthook's npm postinstall, `pre-commit install`) fails instead of displacing the strip; install a project's hooks from outside the pane, where the wrappers chain them.
 The flag is a home-wide attribution choice, so it is inherited into secondmate homes under the [`secondmate-provisioning`](../.agents/skills/secondmate-provisioning/SKILL.md) inherited-local-material contract and a secondmate's own workers keep AI trailers too.
 Per-machine Cursor `cli-config.json` attribution-off is not this contract: it does not travel with Firstmate, defaults back to on when unset, and only feeds the CLI's request to the server, so it suppresses the trailer rather than preventing it.
+
+## Worker launch secrets (config/launch-secrets.json)
+
+The optional local, gitignored `config/launch-secrets.json` launches a harness's workers inside a secret manager's injector, so named secrets such as `OPENROUTER_API_KEY` reach only that worker's process environment.
+The secret is never written to the launch command, task record, status, logs, brief, or pane output; only its name appears there.
+With no file, or with no entry for the launched harness, every launch is unchanged.
+
+The file is home-local: it is not inherited into secondmate homes, and a secondmate home that launches such workers needs its own file.
+Changes apply to subsequent launches, including relaunches; running workers keep the environment they started with.
+
+### Secrets file format
+
+```json
+{
+  "injector": ["av", "inject", "+{name}", "--"],
+  "harnesses": {
+    "pi": ["OPENROUTER_API_KEY"]
+  }
+}
+```
+
+- `injector` is the injector's argv; it must run the command that follows it with the named secrets in that command's environment, and pass on its exit status when it refuses.
+- Every `injector` element containing `{name}` is repeated once per secret name, in the listed order, with `{name}` replaced; other elements are kept as written, so `"+{name}"` above expands to `+OPENROUTER_API_KEY`.
+- The first element is the injector command, resolved from `PATH` when the worker is spawned, and cannot contain `{name}`.
+- `harnesses` maps a harness name, as resolved for the launch, to the distinct environment variable names to inject.
+
+A malformed file, an unreadable file, or an injector that is not installed stops the spawn before any worker, local copy, or record exists.
+
+### Launch and refusal
+
+The worker command runs under `/bin/sh -c` inside the injector, so a raw launch command must be POSIX `sh`; with `config/launch-env-allowlist` enabled, the injected names are forwarded through the filtered environment automatically.
+The spawn then waits for the injected worker to start.
+If the injector refuses, for example when a vault approval is denied, or does not start the worker within `FM_LAUNCH_SECRETS_TIMEOUT` seconds (default 300, enough for an approval prompt), the spawn closes the worker's endpoint, records `failed:` with the injector's exit status or the timeout in the task status, and exits non-zero; an approval that lands after that timeout cannot start the worker.
+The injector's own message stays visible in the worker's pane.
+
+This keeps the secret out of Firstmate's records and the harness's own settings files; it is not a sandbox, so the worker and its child processes can still read the value from their environment.
+[`bin/fm-launch-secrets-lib.sh`](../bin/fm-launch-secrets-lib.sh) owns parsing, wrapping, and the launch handshake, with regression coverage in [`tests/fm-launch-secrets.test.sh`](../tests/fm-launch-secrets.test.sh).
 
 ## Crew dispatch profiles (config/crew-dispatch.json)
 

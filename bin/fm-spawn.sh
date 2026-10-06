@@ -322,6 +322,20 @@
 #   This is an exec environment boundary, not a sandbox for the pane's startup
 #   shell, credential files, same-user processes, or later shell initialization.
 #   See docs/configuration.md for provider/Git setup and supported limits.
+# Launch secrets (config/launch-secrets.json):
+#   Absent means unchanged. When present and naming secrets for the resolved
+#   harness, every launch of that harness (ship, scout, secondmate, raw
+#   command, and relaunch) runs inside the configured secret injector, so the
+#   named secrets reach only the worker's process environment; an enabled
+#   launch-env-allowlist forwards those names too. A malformed file or a
+#   missing injector refuses before any endpoint, worktree, or record exists.
+#   After launch delivery the spawn waits for the injected worker to start and
+#   stops with the concrete reason - closing the endpoint and appending failed:
+#   to the task status - when the injector refuses or does not start it within
+#   FM_LAUNCH_SECRETS_TIMEOUT seconds (default 300). Under this opt-in the
+#   launch runs through /bin/sh -c, so raw commands must be POSIX sh.
+#   bin/fm-launch-secrets-lib.sh owns parsing, wrapping, and the handshake;
+#   docs/configuration.md "Worker launch secrets" owns the schema.
 # Claude permission mode (config/claude-permission-mode):
 #   One token selecting the permission flag every claude launch (ship, scout,
 #   secondmate, and relaunch) carries. Absent or `bypass` keeps today's
@@ -543,6 +557,8 @@ PROJECTS="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}"
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 # shellcheck source=bin/fm-config-inherit-lib.sh
 . "$SCRIPT_DIR/fm-config-inherit-lib.sh"
+# shellcheck source=bin/fm-launch-secrets-lib.sh
+. "$SCRIPT_DIR/fm-launch-secrets-lib.sh"
 if ! LAUNCH_ENV_ENABLED=$(fm_config_source_present "$CONFIG/launch-env-allowlist"); then
   exit 1
 fi
@@ -2439,6 +2455,9 @@ WORKER_ACCOUNT_DECLARED=${WORKER_ACCOUNT%%$'\t'*}
 WORKER_ACCOUNT_ROOT=${WORKER_ACCOUNT#*$'\t'}
 WORKER_ACCOUNT_PROVIDER=${WORKER_ACCOUNT_ROOT#*$'\t'}
 WORKER_ACCOUNT_ROOT=${WORKER_ACCOUNT_ROOT%%$'\t'*}
+# Launch secrets (header above): resolved alongside the account pin, before
+# any endpoint, worktree, or record exists.
+fm_launch_secrets_load "$CONFIG" "$HARNESS" || exit 1
 if [ -n "$WORKER_ACCOUNT" ] && [ "$HARNESS" = claude ]; then
   if [ -n "$WORKER_ACCOUNT_ROOT" ]; then
     export CLAUDE_CONFIG_DIR=$WORKER_ACCOUNT_ROOT
@@ -4198,11 +4217,11 @@ rovo_spawn_fail() { # <detail>
   rovo_endpoint_cleanup
 }
 
-# The launch-then-confirm gates run after the task record is published, when
-# ORCA_ABORT_CLEANUP is already cleared and neither the abort trap nor a
-# teardown owns this endpoint yet, so a gate failure must close the launched
-# process here or it keeps running as an orphaned autonomous agent outside
-# task control. Mirrors fm-teardown.sh's own generic kill call. On orca only
+# The launch-then-confirm gates, including the launch-secrets handshake, run
+# after the task record is published, when ORCA_ABORT_CLEANUP is already
+# cleared and neither the abort trap nor a teardown owns this endpoint yet, so
+# a gate failure must close the launched process here or it keeps running as
+# an orphaned autonomous agent outside task control. Mirrors fm-teardown.sh's own generic kill call. On orca only
 # the exact terminal is closed: that stops the CLI while its worktree stays
 # for the record's own teardown, which owns worktree deletion.
 rovo_endpoint_cleanup() {
@@ -5349,7 +5368,7 @@ if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
     HERDR_PANE_ID CMUX_WORKSPACE_ID CMUX_SURFACE_ID CMUX_TAB_ID CMUX_PANEL_ID \
     CMUX_SOCKET_PATH ZELLIJ ZELLIJ_SESSION_NAME ZELLIJ_PANE_ID FM_ZELLIJ_SESSION \
     FM_TASK_ID COMPACT_ADVISER_DISABLE LAVISH_AXI_HOST \
-    $LAUNCH_ENV_NAMES; do
+    $LAUNCH_ENV_NAMES $FM_LAUNCH_SECRETS_NAMES; do
     # Only validated names enter shell syntax. Values expand once, quoted, in
     # the pane shell and never become source text or spawn-process snapshots.
     # shellcheck disable=SC2016
@@ -5409,6 +5428,14 @@ if ! (umask 077 && mkdir "$LAUNCH_DIR") 2>/dev/null; then
 fi
 LAUNCH_FILE="$LAUNCH_DIR/launch.$SPAWN_GEN.sh"
 LAUNCH_STAGE="$LAUNCH_DIR/.launch.$SPAWN_GEN.tmp"
+# Launch secrets wrap outermost, so the injector runs with the pane's ambient
+# environment and an enabled allowlist's env -i expands the injected names
+# inside it.
+if [ -n "$FM_LAUNCH_SECRETS_NAMES" ]; then
+  LAUNCH_SECRETS_CLAIM="$LAUNCH_DIR/secrets.$SPAWN_GEN.claim"
+  LAUNCH_SECRETS_REFUSED="$LAUNCH_DIR/secrets.$SPAWN_GEN.refused"
+  LAUNCH=$(fm_launch_secrets_wrap "$LAUNCH" "$LAUNCH_SECRETS_CLAIM" "$LAUNCH_SECRETS_REFUSED")
+fi
 if [ -e "$LAUNCH_FILE" ] || [ -L "$LAUNCH_FILE" ]; then
   echo "error: task launch file $LAUNCH_FILE already exists; refusing to replace it" >&2
   exit 1
@@ -5428,6 +5455,16 @@ if [ "${HERDR_PROJECTED:-0}" -eq 1 ]; then
   spawn_herdr_presentation_order_lock_release
 fi
 spawn_send_key "$T" Enter
+if [ -n "$FM_LAUNCH_SECRETS_NAMES" ]; then
+  if ! LAUNCH_SECRETS_FAILURE=$(fm_launch_secrets_wait "$LAUNCH_SECRETS_CLAIM" \
+    "$LAUNCH_SECRETS_REFUSED" "${FM_LAUNCH_SECRETS_TIMEOUT:-300}"); then
+    LAUNCH_SECRETS_FAILURE="$LAUNCH_SECRETS_FAILURE; the $HARNESS worker for $ID was not started, because it never launches without its secrets ($FM_LAUNCH_SECRETS_NAMES)"
+    printf '%s\n' "$(status_stamp_line "failed: $LAUNCH_SECRETS_FAILURE")" >>"$STATE/$ID.status"
+    echo "error: $LAUNCH_SECRETS_FAILURE; inspect window $T" >&2
+    rovo_endpoint_cleanup
+    exit 1
+  fi
+fi
 if [ "$HARNESS" = kimi ]; then
   if ! kimi_wait_for_ready; then
     kimi_spawn_fail "$KIMI_READY_FAILURE_DETAIL"
