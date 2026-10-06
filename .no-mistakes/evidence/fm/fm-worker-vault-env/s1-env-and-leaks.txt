@@ -1,0 +1,46 @@
+## pane foreground processes
+{"pid":18645,"name":"node","argv0":"pi"}
+{"pid":18064,"name":"bash","argv0":"sh"}
+## pi pid=18645 environment: OPENROUTER_API_KEY present? value matches vault value?
+## pane shell (parent of injector) has no OPENROUTER_API_KEY
+shell_pid=5822
+0
+## staged launch file (names only)
+'$LAB/fakebin/av' 'inject' '+OPENROUTER_API_KEY' '--' /bin/sh -c 'mkdir '\''/tmp/fm-glm1+fb5147f3b1bb67f94f179cd78c4abc51dee428c855f4ee613c977e0be9de6a80/secrets.s1791321278.2497.17085.claim'\'' 2>/de
+v/null || { echo '\''error: the spawn already gave up on this launch; not starting the worker'\'' >&2; exit 125; }; export COMPACT_ADVISER_DISABLE=1; export FM_TASK_INBOX='\''$LAB/state/glm1.inbox'\''
+; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0='\''$LAB/state/glm1.git-hooks'\''; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI FM_PI_HARNESS=pi '\''/Users/bsh
+irazi/.bun/bin/pi'\'' --tui-mode regular --model '\''openrouter/z-ai/glm-5.3'\'' -e '\''$LAB/state/glm1.pi-ext.ts'\'' "$('\''/Users/bshirazi/.no-mistakes/worktrees/750af29daff7/01M49ETTHSA7ND3S5V9PK83
+DA3/bin/fm-operational-input.sh'\'' encode launch-brief < '\''$LAB/data/glm1/launch-brief.md'\'')"'; fm_launch_secrets_status=$?; [ -d '/tmp/fm-glm1+fb5147f3b1bb67f94f179cd78c4abc51dee428c855f4ee613c9
+77e0be9de6a80/secrets.s1791321278.2497.17085.claim' ] || { printf '%s\n' "$fm_launch_secrets_status" >'/tmp/fm-glm1+fb5147f3b1bb67f94f179cd78c4abc51dee428c855f4ee613c977e0be9de6a80/secrets.s1791321278
+.2497.17085.refused.tmp' && mv -f '/tmp/fm-glm1+fb5147f3b1bb67f94f179cd78c4abc51dee428c855f4ee613c977e0be9de6a80/secrets.s1791321278.2497.17085.refused.tmp' '/tmp/fm-glm1+fb5147f3b1bb67f94f179cd78c4ab
+c51dee428c855f4ee613c977e0be9de6a80/secrets.s1791321278.2497.17085.refused'; }; unset fm_launch_secrets_status
+## leak scan: secret value in lab home (excluding fixture scratch/), launch namespace, pane, spawn output
+no hits
+## pi's own settings: isolated PI_CODING_AGENT_DIR auth.json
+auth.json
+models-store.json
+sessions
+settings.json
+{}
+## task record
+window=fm-lab-secrets-83330-13473:w1:p2
+endpoint_task_id=glm1
+worktree=/Users/bshirazi/.treehouse/proj-a0007a/1/proj
+project=/private/var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T/fm-lab.NWskm1/scratch/proj
+harness=pi
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/glm1
+tasktmp=/tmp/fm-glm1
+model=openrouter/z-ai/glm-5.3
+effort=default
+busy_gen=g1791321278.11885.11156
+spawn_gen=s1791321278.2497.17085
+backend=herdr
+herdr_session=fm-lab-secrets-83330-13473
+herdr_workspace_id=w1
+herdr_tab_id=w1:t2
+herdr_pane_id=w1:p2
+## status
+cat: /private/var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T/fm-lab.NWskm1/state/glm1.status: No such file or directory

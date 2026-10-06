@@ -1,0 +1,22 @@
+# fake av approval answered 25s late; FM_LAUNCH_SECRETS_TIMEOUT=300; the spawn (pid 45561) gets SIGTERM while it waits, as a caller's tool timeout would
+$ herdr pane read w5:p2   # before the TERM
+❯ export FM_TASK_ID=term2
+proj. '/tmp/fm-term2+fb5147f3b1bb67f94f179cd78c4abc51dee428c855f4ee613c977e0be9de6a80/launch.s1791321589.45561.31738.sh'
+av inject: waiting for approval...
+$ ls $LAB/state/term2.meta   # record published before the TERM
+$LAB/state/term2.meta
+$ kill -TERM 45561
+spawn exit=143
+$ spawn output
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+warning: leaving task term2's slot claim on /Users/bshirazi/.treehouse/proj-a0007a/1/proj in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+$ herdr pane list (lab session)
+[]
+$ ls $LAB/state/term2.meta
+ls: $LAB/state/term2.meta: No such file or directory
+$ sleep 30  # past the late approval
+$ ls /tmp/fm-term2+*/
+launch.s1791321589.45561.31738.sh
+secrets.s1791321589.45561.31738.claim
+$ pi processes (argv0 "pi") whose cwd is the lab worktree
+(none - no orphaned worker)

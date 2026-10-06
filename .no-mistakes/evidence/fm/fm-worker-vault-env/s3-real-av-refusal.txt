@@ -1,0 +1,19 @@
+# real Automic Vault CLI (/usr/local/bin/av) as injector; the named secret is not saved in the vault
+$ cat $LAB/config/launch-secrets.json
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["FM_LAB_ABSENT_OPENROUTER_KEY"]}}
+$ FM_HOME=$LAB bin/fm-spawn.sh avref1 $P --mode local-only --yolo off --harness pi --model openrouter/z-ai/glm-5.3 --backend herdr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+warning: $LAB/data/avref1/launch-brief.md records no ship branch; defaulting to legacy branch fm/avref1
+warning: $LAB/data/avref1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: avref1 ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: the secret injector refused (exit 1) before starting the worker; the pane last showed: av inject: failed to load secret FM_LAB_ABSENT_OPENROUTER_KEY: -25300 | proj on  HEAD | ❯; the pi worker for avref1 was not started, because it never launches without its secrets (FM_LAB_ABSENT_OPENROUTER_KEY); closing window fm-lab-secrets-83330-13473:w2:p2
+warning: leaving task avref1's slot claim on /Users/bshirazi/.treehouse/proj-a0007a/1/proj in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+exit=1
+$ cat $LAB/state/avref1.status
+failed [at=1791321439]: the secret injector refused (exit 1) before starting the worker; the pane last showed: av inject: failed to load secret FM_LAB_ABSENT_OPENROUTER_KEY: -25300 | proj on  HEAD | ❯; the pi worker for avref1 was not started, because it never launches without its secrets (FM_LAB_ABSENT_OPENROUTER_KEY)
+$ herdr pane list (lab session)
+[]
+$ ls $LAB/state/avref1.meta
+ls: $LAB/state/avref1.meta: No such file or directory
+$ pi processes started in lab pi-agent dir sessions
+--Users-bshirazi-.treehouse-proj-a0007a-1-proj--

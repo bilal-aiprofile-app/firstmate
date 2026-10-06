@@ -1,0 +1,38 @@
+# config/pi-account pins pi to an EMPTY root (no auth.json) for provider openrouter; real pi 0.87.0 answers the sign-in check
+$ cat $LAB/config/pi-account
+$LAB/pi-pin-root
+openrouter
+
+## adversarial: launch secrets name only an unrelated key (OTHER_KEY), so nothing signs openrouter in
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["OTHER_KEY"]}}
+$ bin/fm-spawn.sh pin2 ... --harness pi --model openrouter/z-ai/glm-5.3
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: config/pi-account pins Pi workers to $LAB/pi-pin-root, which is not signed in for provider 'openrouter' (not_ready credentials_not_configured); sign in with PI_CODING_AGENT_DIR=$LAB/pi-pin-root pi, then /login, inject the provider's key through config/launch-secrets.json, or change the pin
+exit=1
+$ herdr pane list
+[]
+
+## launch secrets inject OPENROUTER_API_KEY: the pinned check counts it and the spawn proceeds
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"]}}
+$ bin/fm-spawn.sh pin1 ... --harness pi --model openrouter/z-ai/glm-5.3
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+spawned pin1 harness=pi kind=ship mode=local-only yolo=off window=fm-lab-secrets-83330-13473:w6:p2 worktree=/Users/bshirazi/.treehouse/proj-a0007a/1/proj account=$LAB/pi-pin-root account_provider=openrouter
+exit=0
+
+## inside the pinned pi worker (pi `!` shell)
+ New version 1.0.4 is available. Run pi update
+ Changelog: https://pi.dev/changelog
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ $ echo "PI_CODING_AGENT_DIR=$PI_CODING_AGENT_DIR"; test "$OPENROUTER_API_KEY" = "$(cat
+ $LAB/scratch/secret.value)" && echo
+ PINNED-KEY-IN-PI-ENV || echo PINNED-KEY-MISSING
+ PI_CODING_AGENT_DIR=$LAB/pi-pin-root
+ PINNED-KEY-IN-PI-ENV
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+~/.treehouse/proj-a0007a/1/proj (detached)
+0.2%/1.0M (auto)                                                                                     z-ai/glm-5.3 • high
+$ cat $LAB/pi-pin-root/auth.json
+{}

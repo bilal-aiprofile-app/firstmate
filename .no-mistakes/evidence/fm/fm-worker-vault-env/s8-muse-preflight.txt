@@ -1,0 +1,35 @@
+# muse with no stored login (XDG_CONFIG_HOME=$LAB/xdg is empty) and no META_API_KEY in the environment
+
+## control: launch secrets name only pi, so muse's preflight still refuses
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"]}}
+$ bin/fm-spawn.sh muse2 $P ... --harness muse
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: muse has no worker-reachable credential; META_API_KEY cannot be proven present in the herdr worker environment and '$LAB/xdg/muse/auth.json' is absent or empty. Store the fleet credential with 'muse login' or 'muse auth set --api-key-stdin', or inject META_API_KEY for muse through config/launch-secrets.json.
+exit=1
+
+## launch secrets inject META_API_KEY for muse: the preflight accepts it
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"], "muse": ["META_API_KEY"]}}
+$ bin/fm-spawn.sh muse1 $P ... --harness muse
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: 'herdr status --json' failed; is herdr installed correctly?
+exit=1
+
+## (re-run with $LAB/xdg/herdr -> ~/.config/herdr so herdr still finds the lab session) launch secrets inject META_API_KEY for muse: the preflight accepts it
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"], "muse": ["META_API_KEY"]}}
+$ bin/fm-spawn.sh muse1 $P ... --harness muse
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: 'herdr status --json' failed; is herdr installed correctly?
+exit=1
+
+## (re-run with a short empty XDG_CONFIG_HOME=/tmp/fmx.673d whose herdr entry links to ~/.config/herdr) launch secrets inject META_API_KEY for muse: the preflight accepts it
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"], "muse": ["META_API_KEY"]}}
+$ bin/fm-spawn.sh muse1 $P ... --harness muse
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+spawned muse1 harness=muse kind=ship mode=local-only yolo=off window=fm-lab-secrets-83330-13473:w7:p2 worktree=/Users/bshirazi/.treehouse/proj-a0007a/1/proj
+exit=0
+$ ls /tmp/fmx.673d/muse   # no stored muse login
+ls: /tmp/fmx.673d/muse: No such file or directory
+
+## muse pane after launch (muse received the injected META_API_KEY; the fake value is rejected by Meta, as expected)
+Muse Code updated 1.4.2-R4684.1 -> 1.4.3-R5018.1
+failed to fetch model catalog: authentication failed: your API key from META_API_KEY was rejected — update or unset it

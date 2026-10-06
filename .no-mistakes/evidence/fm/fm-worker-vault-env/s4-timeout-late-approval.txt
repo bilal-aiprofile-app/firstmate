@@ -1,0 +1,22 @@
+# fake av whose approval is answered 15s late; FM_LAUNCH_SECRETS_TIMEOUT=5
+$ FM_LAUNCH_SECRETS_TIMEOUT=5 FM_HOME=$LAB bin/fm-spawn.sh slow1 $P --mode local-only --yolo off --harness pi --model openrouter/z-ai/glm-5.3 --backend herdr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: the secret injector did not start the worker within 5s (a pending approval?); the pane last showed: ❯ export FM_TASK_ID=slow1 | proj. '/tmp/fm-slow1+fb5147f3b1bb67f94f179cd78c4abc51dee428c855f4ee613c977e0be9de6a80/launch.s1791321469.47717.31582.sh' | av inject: waiting for approval...; the pi worker for slow1 was not started, because it never launches without its secrets (OPENROUTER_API_KEY); closing window fm-lab-secrets-83330-13473:w3:p2
+warning: leaving task slow1's slot claim on /Users/bshirazi/.treehouse/proj-a0007a/1/proj in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+exit=1 after 18s
+$ cat $LAB/state/slow1.status
+failed [at=1791321477]: the secret injector did not start the worker within 5s (a pending approval?); the pane last showed: ❯ export FM_TASK_ID=slow1 | proj. '/tmp/fm-slow1+fb5147f3b1bb67f94f179cd78c4abc51dee428c855f4ee613c977e0be9de6a80/launch.s1791321469.47717.31582.sh' | av inject: waiting for approval...; the pi worker for slow1 was not started, because it never launches without its secrets (OPENROUTER_API_KEY)
+$ sleep 20  # past the late approval
+$ herdr pane list (lab session)
+[]
+$ ls $LAB/state/slow1.meta'"'"'; ls "$LAB/state/slow1.meta" 2>&1
+} 2>&1 | sed "s#$LAB#\$LAB#g" | grep -v "^warning: .*launch-brief\|^notice:" | tee "$EV/s4-timeout-late-approval.txt"' && pwd -P >| /tmp/claude-1447-cwd
+$ ls $LAB/state/slow1.meta
+ls: $LAB/state/slow1.meta: No such file or directory
+$ ps -axo pid,command | grep -E "[s]low1\.pi-ext|[g]lm-5\.3" (pi worker processes, any task)
+(no pi worker process running)
+$ pi processes (argv0 "pi") whose cwd is the lab worktree ~/.treehouse/proj-a0007a/1/proj
+(none - the late approval started no worker)
+$ ls /tmp/fm-slow1+*/  (claim taken by the spawn on timeout; no refusal file)
+launch.s1791321469.47717.31582.sh
+secrets.s1791321469.47717.31582.claim

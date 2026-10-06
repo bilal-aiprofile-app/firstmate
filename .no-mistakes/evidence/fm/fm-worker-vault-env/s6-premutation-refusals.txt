@@ -1,0 +1,36 @@
+
+## non-integer FM_LAUNCH_SECRETS_TIMEOUT
+$ cat $LAB/config/launch-secrets.json
+{"injector": ["av", "inject", "+{name}", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"]}}
+$ FM_LAUNCH_SECRETS_TIMEOUT=5m FM_HOME=$LAB bin/fm-spawn.sh badto1 $P --mode local-only --yolo off --harness pi --model openrouter/z-ai/glm-5.3 --backend herdr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: FM_LAUNCH_SECRETS_TIMEOUT must be a non-negative integer number of seconds, not '5m'; refusing to launch the pi worker with its secrets (OPENROUTER_API_KEY)
+exit=1
+$ herdr pane list; ls state/badto1.*; ls -d /tmp/fm-badto1+*
+[]
+(no state/badto1.* files)
+(no launch namespace)
+
+## malformed config: injector without {name}
+$ cat $LAB/config/launch-secrets.json
+{"injector": ["av", "inject", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"]}}
+$ FM_LAUNCH_SECRETS_TIMEOUT=300 FM_HOME=$LAB bin/fm-spawn.sh badcfg1 $P --mode local-only --yolo off --harness pi --model openrouter/z-ai/glm-5.3 --backend herdr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: config/launch-secrets.json must be {"injector": [<command>, <args>...], "harnesses": {<harness>: [<SECRET_NAME>...]}}, with at least one injector element containing {name} (not the command itself) and each harness naming distinct environment variable names (see docs/configuration.md "Worker launch secrets")
+exit=1
+$ herdr pane list; ls state/badcfg1.*; ls -d /tmp/fm-badcfg1+*
+[]
+(no state/badcfg1.* files)
+(no launch namespace)
+
+## injector not installed
+$ cat $LAB/config/launch-secrets.json
+{"injector": ["fm-lab-no-such-vault", "inject", "+{name}", "--"], "harnesses": {"pi": ["OPENROUTER_API_KEY"]}}
+$ FM_LAUNCH_SECRETS_TIMEOUT=300 FM_HOME=$LAB bin/fm-spawn.sh noinj1 $P --mode local-only --yolo off --harness pi --model openrouter/z-ai/glm-5.3 --backend herdr
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: config/launch-secrets.json names injector 'fm-lab-no-such-vault' for harness pi, but it is not an installed executable; refusing to launch the worker without its secrets (OPENROUTER_API_KEY)
+exit=1
+$ herdr pane list; ls state/noinj1.*; ls -d /tmp/fm-noinj1+*
+[]
+(no state/noinj1.* files)
+(no launch namespace)

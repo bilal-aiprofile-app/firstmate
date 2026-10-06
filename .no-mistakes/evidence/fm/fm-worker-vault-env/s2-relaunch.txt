@@ -1,0 +1,8 @@
+$ FM_HOME=$LAB bin/fm-control.sh glm1 relaunch --note "relaunch carries vault secret"
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T/fm-lab.NWskm1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T/fm-lab.NWskm1
+warning: /private/var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T/fm-lab.NWskm1/data/glm1/launch-brief.md records no ship branch; defaulting to legacy branch fm/glm1
+warning: /private/var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T/fm-lab.NWskm1/data/glm1/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+notice: glm1 ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+relaunched glm1 harness=pi from=pi model=openrouter/z-ai/glm-5.3 effort=default backend=herdr endpoint=fm-lab-secrets-83330-13473:w1:p2 worktree=/Users/bshirazi/.treehouse/proj-a0007a/1/proj
+exit=0
