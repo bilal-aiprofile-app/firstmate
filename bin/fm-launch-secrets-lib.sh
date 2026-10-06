@@ -10,7 +10,9 @@
 #
 # Only secret NAMES ever enter Firstmate text: the staged launch file, the
 # task record, status lines, and spawn output carry names, never values. The
-# value exists only inside the injector and the process tree it starts.
+# value exists only inside the injector and the process tree it starts. A
+# failed launch copies the pane's last lines into the status and spawn output,
+# so the injector must never print a value (shell tracing included).
 #
 # Launch handshake. The injector runs in the pane, so a refusal (a denied or
 # timed-out vault approval, a missing secret) happens after the spawn handed
@@ -119,7 +121,7 @@ fm_launch_secrets_quote() {
 # fm_launch_secrets_pane_reason <pane-capture>
 # Prints the capture's last three non-empty lines on one line, so a refusal
 # keeps the injector's own message after the spawn closes the pane. The
-# injector reports names and outcomes, never secret values.
+# capture is unfiltered, so this relies on the injector never printing a value.
 fm_launch_secrets_pane_reason() {
   printf '%s\n' "$1" | awk '
     { gsub(/\r/, ""); sub(/[[:space:]]+$/, "") }

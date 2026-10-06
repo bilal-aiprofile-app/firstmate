@@ -335,7 +335,8 @@
 #   refuses or does not start it within FM_LAUNCH_SECRETS_TIMEOUT seconds
 #   (default 300; a non-integer refuses before any mutation). A spawn that is
 #   itself stopped while it waits takes the claim and closes the endpoint the
-#   same way. A muse entry naming META_API_KEY satisfies muse's credential
+#   same way; a fresh spawn closes it even when the worker already claimed it,
+#   because the abort removes the record. A muse entry naming META_API_KEY satisfies muse's credential
 #   preflight, and a pinned Pi account's sign-in check counts injected names. Under this
 #   opt-in the launch runs through /bin/sh -c, so raw commands must be POSIX sh.
 #   bin/fm-launch-secrets-lib.sh owns parsing, wrapping, and the handshake;
@@ -1297,7 +1298,12 @@ spawn_abort_cleanup() {
   local status=$?
   if [ "$LAUNCH_SECRETS_PENDING" = 1 ]; then
     LAUNCH_SECRETS_PENDING=0
-    ! mkdir "$LAUNCH_SECRETS_CLAIM" 2>/dev/null || rovo_endpoint_cleanup
+    # A worker that already holds the claim still loses a fresh spawn's
+    # record to the rollback below, so its endpoint closes too.
+    if mkdir "$LAUNCH_SECRETS_CLAIM" 2>/dev/null ||
+      [ "$SPAWN_FRESH_COMMIT_PENDING" = 1 ]; then
+      rovo_endpoint_cleanup
+    fi
   fi
   if [ "$RELAUNCH_REPLACEMENT_PENDING" = 1 ] &&
     [ "$SPAWN_META_PUBLISH_STARTED" = 1 ] &&

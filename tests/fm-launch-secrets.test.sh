@@ -16,7 +16,8 @@ TMP_ROOT=$(fm_test_tmproot fm-launch-secrets)
 SECRET_VALUE="sk-or-test-$$-do-not-leak"
 
 # The fake injector mirrors `av inject +NAME... -- <command>`: it puts each
-# named secret in the command's environment and runs it. FAKE_AV_MODE selects
+# named secret in the command's environment and runs it. Each name gets
+# FAKE_AV_SECRET_<name> when set, else FAKE_AV_SECRET. FAKE_AV_MODE selects
 # a refusal (an approval denied) or a slow approval (FAKE_AV_DELAY seconds).
 install_fake_av() {  # <fakebin>
   cat > "$1/av" <<'SH'
@@ -26,7 +27,7 @@ shift
 while [ $# -gt 0 ]; do
   case "$1" in
     --) shift; break ;;
-    +*) name=${1#+}; eval "$name=\$FAKE_AV_SECRET; export $name"; shift ;;
+    +*) name=${1#+}; eval "$name=\${FAKE_AV_SECRET_$name-\$FAKE_AV_SECRET}; export $name"; shift ;;
     *) exit 64 ;;
   esac
 done
@@ -108,7 +109,7 @@ run_spawn() {  # <id> [extra spawn args...]
   local id=$1
   shift
   FM_FAKE_LAUNCH_LOG="$LAUNCH_LOG" FAKE_AV_SECRET="$SECRET_VALUE" \
-    FM_LAUNCH_SECRETS_TIMEOUT="${TIMEOUT:-20}" FM_LAUNCH_SECRETS_POLL=0.05 \
+    FM_LAUNCH_SECRETS_TIMEOUT="${TIMEOUT:-20}" FM_LAUNCH_SECRETS_POLL="${POLL:-0.05}" \
     fm_test_run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN" "$id" "$PROJ_DIR" \
     --mode no-mistakes --yolo off "$@"
 }
@@ -117,7 +118,7 @@ run_spawn() {  # <id> [extra spawn args...]
 wait_for_probe() {
   local i=0
   while [ "$i" -lt 100 ]; do
-    [ "$(wc -l < "$PROBE_LOG" 2>/dev/null || echo 0)" -ge "$1" ] && return 0
+    [ "$({ wc -l < "$PROBE_LOG"; } 2>/dev/null || echo 0)" -ge "$1" ] && return 0
     sleep 0.05
     i=$((i + 1))
   done
@@ -185,15 +186,28 @@ test_configured_injects_the_secret() {
 }
 
 test_every_listed_name_is_injected() {
-  local out status
-  make_case two-names pi two-a1
-  write_config pi '["OPENROUTER_API_KEY", "OTHER_KEY"]'
-  out=$(run_spawn two-a1)
-  status=$?
-  expect_code 0 "$status" "spawn with two secrets should succeed: $out"
-  assert_contains "$(cat "$LAUNCH_LOG")" "'inject' '+OPENROUTER_API_KEY' '+OTHER_KEY' '--'" \
-    "each listed name must expand the {name} element once, in order"
-  pass "every listed secret name expands the injector's {name} element in order"
+  local allowlist id out status
+  for allowlist in absent enabled; do
+    id="two-$allowlist-a1"
+    make_case "two-$allowlist" pi "$id"
+    cat > "$FAKEBIN/pi" <<SH
+#!/bin/sh
+case "\${1:-}" in --help|--version) exit 0 ;; esac
+printf 'started first=%s second=%s\n' "\${OPENROUTER_API_KEY-unset}" "\${OTHER_KEY-unset}" >> '$PROBE_LOG'
+SH
+    write_config pi '["OPENROUTER_API_KEY", "OTHER_KEY"]'
+    [ "$allowlist" = absent ] || : > "$HOME_DIR/config/launch-env-allowlist"
+    out=$(FAKE_AV_SECRET_OTHER_KEY="$SECRET_VALUE-second" run_spawn "$id")
+    status=$?
+    expect_code 0 "$status" "allowlist=$allowlist: spawn with two secrets should succeed: $out"
+    assert_contains "$(cat "$LAUNCH_LOG")" "'inject' '+OPENROUTER_API_KEY' '+OTHER_KEY' '--'" \
+      "allowlist=$allowlist: each listed name must expand the {name} element once, in order"
+    wait_for_probe 1 || fail "allowlist=$allowlist: the worker never started; pane output: $(cat "$PANE_OUT")"
+    assert_equals "started first=$SECRET_VALUE second=$SECRET_VALUE-second" "$(cat "$PROBE_LOG")" \
+      "allowlist=$allowlist: the worker must start with each secret under its own name"
+    assert_secret_not_leaked "$id" "$out" "two names, allowlist=$allowlist"
+  done
+  pass "every listed secret reaches the worker under its own name, with or without the env allowlist"
 }
 
 test_refusing_injector_stops_the_spawn() {
@@ -242,6 +256,24 @@ test_stopped_spawn_takes_the_claim_and_closes_the_pane() {
     "a late approval must not start the worker of a spawn that was stopped"
   [ ! -s "$PROBE_LOG" ] || fail "a late approval started an orphaned worker: $(cat "$PROBE_LOG")"
   pass "a spawn stopped during the approval takes the claim, so the late approval cannot start an orphan"
+}
+
+# The worker wins the claim during the spawn's poll sleep, and only then is the
+# spawn stopped: the abort removes the fresh task record, so it must close the
+# endpoint of the worker that already started rather than leave it running.
+test_stopped_spawn_after_the_worker_claims_closes_the_pane() {
+  local id=term-late-a1 out_file pid
+  make_case term-late pi "$id"
+  write_config pi
+  out_file="$CASE_DIR/spawn.out"
+  FAKE_AV_MODE=slow FAKE_AV_DELAY=1 POLL=10 TIMEOUT=60 run_spawn "$id" > "$out_file" 2>&1 &
+  pid=$!
+  wait_for_probe 1 || fail "the worker never started before the spawn was stopped: $(cat "$out_file")"
+  pkill -TERM -f "bin/fm-spawn.sh $id " || fail "the spawn was not waiting on the handshake: $(cat "$out_file")"
+  wait "$pid"
+  [ -e "$PANE_OUT.closed" ] || fail "a spawn stopped after its worker started must close the worker's endpoint: $(cat "$out_file")"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "a spawn stopped mid-handshake must not leave a task record"
+  pass "a spawn stopped after its worker claimed the launch closes that worker's endpoint with its record"
 }
 
 # The fake pi answers the pin's sign-in check the way the real one does: an
@@ -521,6 +553,7 @@ test_configured_injects_the_secret
 test_every_listed_name_is_injected
 test_refusing_injector_stops_the_spawn
 test_stopped_spawn_takes_the_claim_and_closes_the_pane
+test_stopped_spawn_after_the_worker_claims_closes_the_pane
 test_pinned_pi_account_counts_the_injected_key
 test_invalid_timeout_refuses_before_any_record
 test_muse_injected_key_satisfies_the_credential_preflight

@@ -1007,7 +1007,8 @@ Per-machine Cursor `cli-config.json` attribution-off is not this contract: it do
 ## Worker launch secrets (config/launch-secrets.json)
 
 The optional local, gitignored `config/launch-secrets.json` launches a harness's workers inside a secret manager's injector, so named secrets such as `OPENROUTER_API_KEY` reach only that worker's process environment.
-The secret is never written to the launch command, task record, status, logs, brief, or pane output; only its name appears there.
+Firstmate never writes the secret to the launch command, task record, status, logs, or brief; only its name appears there.
+The injector must not print secret values, for example through shell tracing: a failed launch copies the pane's last lines into the task status and spawn output, so anything the injector printed there is saved too.
 With no file, or with no entry for the launched harness, every launch is unchanged.
 
 The file is home-local: it is not inherited into secondmate homes, and a secondmate home that launches such workers needs its own file.
@@ -1036,7 +1037,7 @@ A malformed file, an unreadable file, or an injector that is not installed stops
 The worker command runs under `/bin/sh -c` inside the injector, so a raw launch command must be POSIX `sh`; with `config/launch-env-allowlist` enabled, the injected names are forwarded through the filtered environment automatically.
 The spawn then waits for the injected worker to start.
 If the injector refuses, for example when a vault approval is denied, or does not start the worker within `FM_LAUNCH_SECRETS_TIMEOUT` seconds (default 300, enough for an approval prompt), the spawn captures the pane's last three non-empty lines, closes the worker's endpoint, records `failed:` with the injector's exit status or the timeout and those lines in the task status, prints the same reason, and exits non-zero; an approval that lands after that timeout cannot start the worker.
-A spawn that is itself stopped while it waits, for example by its caller's timeout, takes the same claim and closes the endpoint on exit, so a later approval cannot start a worker no task record describes.
+A spawn that is itself stopped while it waits, for example by its caller's timeout, takes the same claim and closes the endpoint on exit, so a later approval cannot start a worker no task record describes; a fresh spawn closes the endpoint even when the worker already started, because the stopped spawn removes its task record.
 Unattended launches cannot wait on an interactive approval: the watcher's automatic secondmate respawn stops its spawn after `FM_SECONDMATE_LIVENESS_TIMEOUT` seconds (default 120), so a respawn whose injector waits on a human approval past that bound fails closed and is recorded as a failed relaunch; each automatic retry fails the same way, and the secondmate stays down until it is relaunched by hand.
 For a harness whose secondmates must respawn unattended, use an injector that answers without a prompt.
 The captured lines carry the injector's own message, such as a denied approval or a missing secret, because the pane itself is gone once the spawn fails.
