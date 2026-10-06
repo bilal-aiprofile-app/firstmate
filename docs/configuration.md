@@ -1037,6 +1037,8 @@ The worker command runs under `/bin/sh -c` inside the injector, so a raw launch 
 The spawn then waits for the injected worker to start.
 If the injector refuses, for example when a vault approval is denied, or does not start the worker within `FM_LAUNCH_SECRETS_TIMEOUT` seconds (default 300, enough for an approval prompt), the spawn captures the pane's last three non-empty lines, closes the worker's endpoint, records `failed:` with the injector's exit status or the timeout and those lines in the task status, prints the same reason, and exits non-zero; an approval that lands after that timeout cannot start the worker.
 A spawn that is itself stopped while it waits, for example by its caller's timeout, takes the same claim and closes the endpoint on exit, so a later approval cannot start a worker no task record describes.
+Unattended launches cannot wait on an interactive approval: the watcher's automatic secondmate respawn stops its spawn after `FM_SECONDMATE_LIVENESS_TIMEOUT` seconds (default 120), so a respawn whose injector waits on a human approval past that bound fails closed and is recorded as a failed relaunch; each automatic retry fails the same way, and the secondmate stays down until it is relaunched by hand.
+For a harness whose secondmates must respawn unattended, use an injector that answers without a prompt.
 The captured lines carry the injector's own message, such as a denied approval or a missing secret, because the pane itself is gone once the spawn fails.
 A `FM_LAUNCH_SECRETS_TIMEOUT` that is not a non-negative integer stops the spawn before any worker, local copy, or record exists.
 

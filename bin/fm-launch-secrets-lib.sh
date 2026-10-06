@@ -23,6 +23,14 @@
 #     late approval can no longer start the worker the spawn already failed.
 # The spawn proceeds only on the worker's own claim; every other outcome stops
 # the spawn with the concrete reason.
+#
+# Unattended launches cannot wait on an interactive approval. The watcher's
+# automatic secondmate respawn bounds the whole spawn with its own timeout
+# (FM_SECONDMATE_LIVENESS_TIMEOUT, default 120s), so an injector that waits on
+# a human approval past it fails that respawn closed, through the claim above;
+# every automatic retry fails the same way until a hand relaunch. Such a
+# harness needs an injector that answers without a prompt for unattended
+# respawns to succeed.
 
 # fm_launch_secrets_load <config-dir> <harness>
 # Validates config/launch-secrets.json and selects the secrets for <harness>.
