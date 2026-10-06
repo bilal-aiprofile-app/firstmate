@@ -41,21 +41,27 @@ SH
 
 # The probe stands in for the harness. It answers the spawn's --help probe and
 # otherwise records whether it started and the secret it saw.
-install_probe() {  # <fakebin> <harness> <record-file>
+install_probe() {  # <fakebin> <harness> <record-file> [secret-name]
   cat > "$1/$2" <<SH
 #!/bin/sh
 case "\${1:-}" in --help|--version) exit 0 ;; esac
-printf 'started secret=%s\n' "\${OPENROUTER_API_KEY-unset}" >> '$3'
+printf 'started secret=%s\n' "\${${4:-OPENROUTER_API_KEY}-unset}" >> '$3'
 SH
   chmod +x "$1/$2"
 }
 
 # The fixture's tmux records launches; this wrapper also runs the staged launch
-# file in the background, the way a pane shell sourcing it would.
+# file in the background, the way a pane shell sourcing it would. A capture
+# reads the pane's output until the window is killed, after which the pane and
+# everything it showed are gone.
 install_running_pane() {  # <fakebin> <pane-output>
   mv "$1/tmux" "$1/tmux.recorder"
   cat > "$1/tmux" <<SH
 #!/usr/bin/env bash
+case "\${1:-}" in
+  capture-pane) [ -e '$2.closed' ] || cat '$2'; exit 0 ;;
+  kill-window) : > '$2.closed' ;;
+esac
 '$1/tmux.recorder' "\$@" || exit \$?
 [ "\${1:-}" = send-keys ] || exit 0
 for a in "\$@"; do
@@ -72,9 +78,9 @@ SH
   chmod +x "$1/tmux"
 }
 
-# make_case <name> <harness> <id> -> sets CASE_DIR HOME_DIR PROJ_DIR WT_DIR FAKEBIN LAUNCH_LOG PANE_OUT PROBE_LOG
+# make_case <name> <harness> <id> [secret-name] -> sets CASE_DIR HOME_DIR PROJ_DIR WT_DIR FAKEBIN LAUNCH_LOG PANE_OUT PROBE_LOG
 make_case() {
-  local name=$1 harness=$2 id=$3
+  local name=$1 harness=$2 id=$3 secret=${4:-OPENROUTER_API_KEY}
   CASE_DIR="$TMP_ROOT/$name"
   HOME_DIR="$CASE_DIR/home"
   PROJ_DIR="$CASE_DIR/project"
@@ -84,7 +90,7 @@ make_case() {
   PROBE_LOG="$CASE_DIR/probe.log"
   FAKEBIN=$(fm_test_make_spawn_fakebin "$CASE_DIR/fake")
   install_fake_av "$FAKEBIN"
-  install_probe "$FAKEBIN" "$harness" "$PROBE_LOG"
+  install_probe "$FAKEBIN" "$harness" "$PROBE_LOG" "$secret"
   install_running_pane "$FAKEBIN" "$PANE_OUT"
   fm_test_spawn_home "$HOME_DIR" "$harness"
   fm_git_worktree "$PROJ_DIR" "$WT_DIR" "wt-$name"
@@ -198,13 +204,46 @@ test_refusing_injector_stops_the_spawn() {
   status=$?
   [ "$status" -ne 0 ] || fail "a refusing injector must fail the spawn: $out"
   assert_contains "$out" 'refused (exit 3)' "the spawn must report the injector's refusal"
+  [ -e "$PANE_OUT.closed" ] || fail "a refusing injector must close the worker's endpoint"
+  assert_contains "$out" 'the pane last showed: av: approval denied' \
+    "the spawn must carry the injector's own message past the closed pane"
   assert_contains "$(cat "$HOME_DIR/state/refuse-a1.status")" 'the secret injector refused (exit 3)' \
     "the task status must record the refusal"
-  assert_contains "$(cat "$PANE_OUT")" 'av: approval denied' \
-    "the injector's own message stays visible in the pane"
+  assert_contains "$(cat "$HOME_DIR/state/refuse-a1.status")" 'the pane last showed: av: approval denied' \
+    "the task status must record the injector's own message"
   [ ! -s "$PROBE_LOG" ] || fail "a refusing injector must not start the worker: $(cat "$PROBE_LOG")"
   assert_secret_not_leaked refuse-a1 "$out" "refusal"
   pass "a refusing injector stops the spawn with its exit status and never starts the worker"
+}
+
+test_invalid_timeout_refuses_before_any_record() {
+  local out status
+  make_case bad-timeout pi bad-timeout-a1
+  write_config pi
+  out=$(TIMEOUT=5m run_spawn bad-timeout-a1)
+  status=$?
+  [ "$status" -ne 0 ] || fail "a non-integer timeout must refuse the spawn: $out"
+  assert_contains "$out" "FM_LAUNCH_SECRETS_TIMEOUT must be a non-negative integer" \
+    "the refusal must name the invalid timeout"
+  [ ! -e "$HOME_DIR/state/bad-timeout-a1.meta" ] || fail "a non-integer timeout must refuse before any task record exists"
+  [ ! -s "$LAUNCH_LOG" ] || fail "a non-integer timeout must refuse before any launch: $(cat "$LAUNCH_LOG")"
+  pass "a non-integer launch-secrets timeout refuses the spawn before any record or launch exists"
+}
+
+test_muse_injected_key_satisfies_the_credential_preflight() {
+  local out status
+  make_case muse muse muse-a1 META_API_KEY
+  write_config muse '["META_API_KEY"]'
+  mkdir -p "$CASE_DIR/xdgconfig" "$CASE_DIR/xdgdata"
+  out=$(XDG_CONFIG_HOME="$CASE_DIR/xdgconfig" XDG_DATA_HOME="$CASE_DIR/xdgdata" META_API_KEY= \
+    run_spawn muse-a1)
+  status=$?
+  expect_code 0 "$status" "a muse spawn whose META_API_KEY is injected should pass the credential preflight: $out"
+  wait_for_probe 1 || fail "muse: the worker never started; pane output: $(cat "$PANE_OUT")"
+  assert_equals "started secret=$SECRET_VALUE" "$(cat "$PROBE_LOG")" \
+    "the muse worker must start with the injected META_API_KEY"
+  assert_secret_not_leaked muse-a1 "$out" "muse"
+  pass "a META_API_KEY injected for muse satisfies its credential preflight without a stored login"
 }
 
 test_slow_injector_times_out_and_cannot_start_late() {
@@ -377,6 +416,8 @@ test_other_harness_is_unchanged
 test_configured_injects_the_secret
 test_every_listed_name_is_injected
 test_refusing_injector_stops_the_spawn
+test_invalid_timeout_refuses_before_any_record
+test_muse_injected_key_satisfies_the_credential_preflight
 test_slow_injector_times_out_and_cannot_start_late
 test_missing_injector_refuses_before_any_record
 test_malformed_config_refuses

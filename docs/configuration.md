@@ -741,6 +741,7 @@ On Zellij, cmux, and Orca a typed-plane Cursor send (a harness-native invocation
 
 muse is verified for crewmate and scout launches ONLY, and `fm-spawn.sh` refuses it for a secondmate, because muse ships no usable hook surface for a primary session's turn-end supervision; [`docs/verification/muse.md`](verification/muse.md) owns that evidence.
 muse also needs a worker-reachable credential before spawning, and the portable fleet path is the `<config>/muse/auth.json` credential stored by `muse login`, because a caller-only `META_API_KEY` does not cross a long-lived backend daemon.
+A `META_API_KEY` injected for muse through [worker launch secrets](#worker-launch-secrets-configlaunch-secretsjson) also satisfies that preflight.
 
 gemini is likewise refused for secondmates because it has no primary supervision protocol; [its adapter reference](../.agents/skills/harness-adapters/references/harness/gemini.md) owns the credential precondition, canonical-launch wiring, and raw-launch limitations.
 rovo is likewise verified for crewmate and scout launches ONLY, refused for a secondmate for the same reason - no turn-end hook and no primary supervision protocol; [`docs/verification/rovo.md`](verification/rovo.md) owns that evidence, including the OAuth token's silent background refresh from a stored refresh token and both tmux and herdr pane liveness (herdr placement is verified live, with a Herdr-side agent-detection gap left open for recovery classification).
@@ -1033,8 +1034,11 @@ A malformed file, an unreadable file, or an injector that is not installed stops
 
 The worker command runs under `/bin/sh -c` inside the injector, so a raw launch command must be POSIX `sh`; with `config/launch-env-allowlist` enabled, the injected names are forwarded through the filtered environment automatically.
 The spawn then waits for the injected worker to start.
-If the injector refuses, for example when a vault approval is denied, or does not start the worker within `FM_LAUNCH_SECRETS_TIMEOUT` seconds (default 300, enough for an approval prompt), the spawn closes the worker's endpoint, records `failed:` with the injector's exit status or the timeout in the task status, and exits non-zero; an approval that lands after that timeout cannot start the worker.
-The injector's own message stays visible in the worker's pane.
+If the injector refuses, for example when a vault approval is denied, or does not start the worker within `FM_LAUNCH_SECRETS_TIMEOUT` seconds (default 300, enough for an approval prompt), the spawn captures the pane's last three non-empty lines, closes the worker's endpoint, records `failed:` with the injector's exit status or the timeout and those lines in the task status, prints the same reason, and exits non-zero; an approval that lands after that timeout cannot start the worker.
+The captured lines carry the injector's own message, such as a denied approval or a missing secret, because the pane itself is gone once the spawn fails.
+A `FM_LAUNCH_SECRETS_TIMEOUT` that is not a non-negative integer stops the spawn before any worker, local copy, or record exists.
+
+A `muse` entry naming `META_API_KEY` satisfies muse's worker-reachable credential preflight, so muse needs no stored `auth.json` login.
 
 This keeps the secret out of Firstmate's records and the harness's own settings files; it is not a sandbox, so the worker and its child processes can still read the value from their environment.
 [`bin/fm-launch-secrets-lib.sh`](../bin/fm-launch-secrets-lib.sh) owns parsing, wrapping, and the launch handshake, with regression coverage in [`tests/fm-launch-secrets.test.sh`](../tests/fm-launch-secrets.test.sh).

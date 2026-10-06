@@ -330,10 +330,12 @@
 #   launch-env-allowlist forwards those names too. A malformed file or a
 #   missing injector refuses before any endpoint, worktree, or record exists.
 #   After launch delivery the spawn waits for the injected worker to start and
-#   stops with the concrete reason - closing the endpoint and appending failed:
-#   to the task status - when the injector refuses or does not start it within
-#   FM_LAUNCH_SECRETS_TIMEOUT seconds (default 300). Under this opt-in the
-#   launch runs through /bin/sh -c, so raw commands must be POSIX sh.
+#   stops with the concrete reason - the pane's last lines captured, then the
+#   endpoint closed and failed: appended to the task status - when the injector
+#   refuses or does not start it within FM_LAUNCH_SECRETS_TIMEOUT seconds
+#   (default 300; a non-integer refuses before any mutation). A muse entry
+#   naming META_API_KEY satisfies muse's credential preflight. Under this
+#   opt-in the launch runs through /bin/sh -c, so raw commands must be POSIX sh.
 #   bin/fm-launch-secrets-lib.sh owns parsing, wrapping, and the handshake;
 #   docs/configuration.md "Worker launch secrets" owns the schema.
 # Claude permission mode (config/claude-permission-mode):
@@ -2550,13 +2552,18 @@ resolve_rovo_binary() {
 # without an interactive login. muse offers exactly two credential paths
 # (verified, muse 0.1.0-R708.1): the META_API_KEY environment variable, which
 # always takes priority, and a stored credential written by `muse auth set` or
-# `muse login` into <config>/muse/auth.json. This is a PREFLIGHT rather than a
+# `muse login` into <config>/muse/auth.json. META_API_KEY reaches the worker
+# when config/launch-secrets.json injects it for muse, or when it is present in
+# the tmux session environment the pane inherits. This is a PREFLIGHT rather than a
 # rendered-screen check because an unauthenticated pane does not exit - it sits
 # on an OAuth device-code prompt ("Sign in at this page ... Waiting for
 # approval...") waiting for a human who is not there, which would look to
 # supervision like a wedged worker rather than a missing credential.
 muse_worker_meta_api_key_present() {
   local session worker_env
+  case " $FM_LAUNCH_SECRETS_NAMES " in
+  *" META_API_KEY "*) return 0 ;;
+  esac
   if [ "$LAUNCH_ENV_ENABLED" = 1 ]; then
     case $'\n'"$LAUNCH_ENV_NAMES"$'\n' in
     *$'\nMETA_API_KEY\n'*) ;;
@@ -2753,9 +2760,9 @@ case "$LAUNCH" in
   MUSE_AUTH_FILE="$MUSE_CONFIG_HOME/muse/auth.json"
   if ! muse_credential_present "$MUSE_AUTH_FILE"; then
     if [ -n "${META_API_KEY:-}" ]; then
-      echo "error: muse has no worker-reachable credential; META_API_KEY is set for fm-spawn but cannot be proven present in the $BACKEND worker environment. Store the fleet credential at '$MUSE_AUTH_FILE' with 'muse login' or 'muse auth set --api-key-stdin'. The secret will not be copied into the launch command." >&2
+      echo "error: muse has no worker-reachable credential; META_API_KEY is set for fm-spawn but cannot be proven present in the $BACKEND worker environment. Store the fleet credential at '$MUSE_AUTH_FILE' with 'muse login' or 'muse auth set --api-key-stdin', or inject META_API_KEY for muse through config/launch-secrets.json. The secret will not be copied into the launch command." >&2
     else
-      echo "error: muse has no worker-reachable credential; META_API_KEY cannot be proven present in the $BACKEND worker environment and '$MUSE_AUTH_FILE' is absent or empty. Store the fleet credential with 'muse login' or 'muse auth set --api-key-stdin'." >&2
+      echo "error: muse has no worker-reachable credential; META_API_KEY cannot be proven present in the $BACKEND worker environment and '$MUSE_AUTH_FILE' is absent or empty. Store the fleet credential with 'muse login' or 'muse auth set --api-key-stdin', or inject META_API_KEY for muse through config/launch-secrets.json." >&2
     fi
     exit 1
   fi
@@ -5457,10 +5464,12 @@ fi
 spawn_send_key "$T" Enter
 if [ -n "$FM_LAUNCH_SECRETS_NAMES" ]; then
   if ! LAUNCH_SECRETS_FAILURE=$(fm_launch_secrets_wait "$LAUNCH_SECRETS_CLAIM" \
-    "$LAUNCH_SECRETS_REFUSED" "${FM_LAUNCH_SECRETS_TIMEOUT:-300}"); then
+    "$LAUNCH_SECRETS_REFUSED" "$FM_LAUNCH_SECRETS_TIMEOUT"); then
+    LAUNCH_SECRETS_PANE=$(fm_launch_secrets_pane_reason "$(fm_backend_capture "$BACKEND" "$T" 40 "$W" 2>/dev/null)")
+    [ -z "$LAUNCH_SECRETS_PANE" ] || LAUNCH_SECRETS_FAILURE="$LAUNCH_SECRETS_FAILURE; the pane last showed: $LAUNCH_SECRETS_PANE"
     LAUNCH_SECRETS_FAILURE="$LAUNCH_SECRETS_FAILURE; the $HARNESS worker for $ID was not started, because it never launches without its secrets ($FM_LAUNCH_SECRETS_NAMES)"
     printf '%s\n' "$(status_stamp_line "failed: $LAUNCH_SECRETS_FAILURE")" >>"$STATE/$ID.status"
-    echo "error: $LAUNCH_SECRETS_FAILURE; inspect window $T" >&2
+    echo "error: $LAUNCH_SECRETS_FAILURE; closing window $T" >&2
     rovo_endpoint_cleanup
     exit 1
   fi

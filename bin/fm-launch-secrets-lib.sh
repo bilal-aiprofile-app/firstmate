@@ -29,8 +29,10 @@
 # Sets FM_LAUNCH_SECRETS_NAMES (space-separated names; empty when the file is
 # absent or names nothing for this harness) and FM_LAUNCH_SECRETS_INJECTOR
 # (the shell-quoted injector argv prefix, with argv[0] resolved to an
-# executable path). Returns 1 with an error on stderr for an unreadable or
-# malformed file, or an injector that is not installed.
+# executable path), and defaults FM_LAUNCH_SECRETS_TIMEOUT to 300 seconds.
+# Returns 1 with an error on stderr for an unreadable or malformed file, an
+# injector that is not installed, or a timeout that is not a non-negative
+# integer.
 fm_launch_secrets_load() {
   local config=$1 harness=$2 file present argv0 resolved rest
   file=$config/launch-secrets.json
@@ -55,6 +57,14 @@ fm_launch_secrets_load() {
   fi
   FM_LAUNCH_SECRETS_NAMES=$(jq -r --arg h "$harness" '(.harnesses[$h] // []) | join(" ")' "$file") || return 1
   [ -n "$FM_LAUNCH_SECRETS_NAMES" ] || return 0
+  FM_LAUNCH_SECRETS_TIMEOUT=${FM_LAUNCH_SECRETS_TIMEOUT:-300}
+  case "$FM_LAUNCH_SECRETS_TIMEOUT" in
+  *[!0-9]*)
+    echo "error: FM_LAUNCH_SECRETS_TIMEOUT must be a non-negative integer number of seconds, not '$FM_LAUNCH_SECRETS_TIMEOUT'; refusing to launch the $harness worker with its secrets ($FM_LAUNCH_SECRETS_NAMES)" >&2
+    FM_LAUNCH_SECRETS_NAMES=
+    return 1
+    ;;
+  esac
   argv0=$(jq -r '.injector[0]' "$file") || return 1
   resolved=$(command -v -- "$argv0" 2>/dev/null) || resolved=
   case "$resolved" in
@@ -96,6 +106,20 @@ fm_launch_secrets_quote() {
   printf "'"
   printf '%s' "$1" | sed "s/'/'\\\\''/g"
   printf "'"
+}
+
+# fm_launch_secrets_pane_reason <pane-capture>
+# Prints the capture's last three non-empty lines on one line, so a refusal
+# keeps the injector's own message after the spawn closes the pane. The
+# injector reports names and outcomes, never secret values.
+fm_launch_secrets_pane_reason() {
+  printf '%s\n' "$1" | awk '
+    { gsub(/\r/, ""); sub(/[[:space:]]+$/, "") }
+    length { line[++n] = $0 }
+    END {
+      first = n > 3 ? n - 2 : 1
+      for (i = first; i <= n; i++) printf "%s%s", (i > first ? " | " : ""), line[i]
+    }'
 }
 
 # fm_launch_secrets_wait <claim-dir> <refused-file> <timeout-seconds>
