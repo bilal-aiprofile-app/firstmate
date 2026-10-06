@@ -1,0 +1,2 @@
+[base-gh-auth-fail] poll 01 rc=0 elapsed=0.3s stdout=contributions:\ observation\ unavailable\ for\ https://github.com/kunchenguid/firstmate/pull/5442 record={"checked_at":"2026-10-06T00:13:18Z","error":"forge observation unavailable or changed during read","head":"407b16a058993dbda1603553d6306928d6
+[base-gh-auth-fail] SUMMARY polls=1 unavailable_wakes=1 refreshed=1 unmeasured=0 gh_auth_token_calls=0 gh_reads_with_env_token=0 gh_reads_without_token=1

@@ -1,0 +1,9 @@
+== base
+not ok - an unchanged PR behind a slow credential lookup was not observed fresh
+not ok - a small-budget poll did not resolve the stored credential once (FM_CONTRIBUTIONS_BUDGET=10)
+not ok - a credential lookup fail printed a wake: contributions: observation unavailable for https://github.com/o/r/pull/8
+not ok - 3 contribution regressions
+== head
+ok - a slow stored-credential lookup is paid once and an unchanged PR stays observed
+ok - a small effective budget still resolves the credential once and observes fresh
+ok - a failed or timed-out credential lookup leaves the URL unmeasured and silent

@@ -1,0 +1,6 @@
+armed check run 1 rc=0 stdout='' record={"checked_at":"2026-10-06T00:18:09Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+armed check run 2 rc=0 stdout='' record={"checked_at":"2026-10-06T00:18:14Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+armed check run 3 rc=0 stdout='' record={"checked_at":"2026-10-06T00:18:20Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+armed check run 4 rc=0 stdout='' record={"checked_at":"2026-10-06T00:18:27Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+armed check run 5 rc=0 stdout='' record={"checked_at":"2026-10-06T00:18:32Z","error":null,"head":"407b16a","state":"open","mergeable":"conflicting"}
+gh auth token lookups: 5; reads with env token: 40; reads without token: 0

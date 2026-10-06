@@ -1,0 +1,4 @@
+[head-envtoken] poll 01 rc=0 elapsed=4.1s stdout='' record={"checked_at":"2026-10-06T00:17:36Z","error":null,"head":"407b16a058993dbda1603553d6306928d60d58dd","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+[head-envtoken] poll 02 rc=0 elapsed=1.9s stdout='' record={"checked_at":"2026-10-06T00:17:41Z","error":null,"head":"407b16a058993dbda1603553d6306928d60d58dd","state":"open","mergeable":"conflicting","checks":0,"reviews":0}
+[head-envtoken] SUMMARY polls=2 unavailable_wakes=0 refreshed=2 unmeasured=0 gh_auth_token_calls=0 gh_reads_with_env_token=16 gh_reads_without_token=0
+resolved token value absent from lab data/, state/ and gh call logs
