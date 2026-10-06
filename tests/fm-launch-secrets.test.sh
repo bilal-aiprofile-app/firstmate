@@ -278,7 +278,7 @@ test_pinned_pi_account_counts_the_injected_key() {
     mkdir -p "$CASE_DIR/pi-root"
     printf '%s\nopenrouter\n' "$CASE_DIR/pi-root" > "$HOME_DIR/config/pi-account"
     write_config pi "$names"
-    out=$(OPENROUTER_API_KEY= run_spawn "$id" --model openrouter/z-ai/glm-5.3)
+    out=$(OPENROUTER_API_KEY='' run_spawn "$id" --model openrouter/z-ai/glm-5.3)
     status=$?
     assert_secret_not_leaked "$id" "$out" "pin $names"
     assert_not_contains "$(cat "$checks" 2>/dev/null)" "$SECRET_VALUE" \
@@ -316,7 +316,7 @@ test_muse_injected_key_satisfies_the_credential_preflight() {
   make_case muse muse muse-a1 META_API_KEY
   write_config muse '["META_API_KEY"]'
   mkdir -p "$CASE_DIR/xdgconfig" "$CASE_DIR/xdgdata"
-  out=$(XDG_CONFIG_HOME="$CASE_DIR/xdgconfig" XDG_DATA_HOME="$CASE_DIR/xdgdata" META_API_KEY= \
+  out=$(XDG_CONFIG_HOME="$CASE_DIR/xdgconfig" XDG_DATA_HOME="$CASE_DIR/xdgdata" META_API_KEY='' \
     run_spawn muse-a1)
   status=$?
   expect_code 0 "$status" "a muse spawn whose META_API_KEY is injected should pass the credential preflight: $out"
