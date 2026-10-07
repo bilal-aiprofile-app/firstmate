@@ -1,0 +1,20 @@
+=== 09:54:28 watcher cycle 1 armed (budget 80s)
+--- 09:54:29 watcher exited rc=0, reason:
+    check: rearm-resurface
+    drained+acked through row 0
+=== 09:54:32 watcher cycle 2 armed (budget 76s)
+--- 09:54:58 watcher exited rc=0, reason:
+    check: contributions lab-done 4e9b0e8bf9ec0a44e2c05e61ca8c3c90b5e40a46200b86a0448457d762196af2
+    
+    drained+acked through row 12
+=== 09:55:00 watcher cycle 3 armed (budget 48s)
+--- 09:55:14 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 13
+=== 09:55:17 watcher cycle 4 armed (budget 31s)
+--- 09:55:32 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 14
+=== 09:55:33 watcher cycle 5 armed (budget 15s)
+--- 09:55:48 watcher still blocking at deadline (no actionable wake)
+=== 09:55:48 done after 5 cycle(s)

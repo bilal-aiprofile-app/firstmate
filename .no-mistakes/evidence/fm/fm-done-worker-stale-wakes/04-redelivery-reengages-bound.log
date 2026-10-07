@@ -1,0 +1,19 @@
+1791381130 state/lab-done.status
+1791381013 state/lab-done.inbox/handled/001.msg
+=== 09:52:10 watcher cycle 1 armed (budget 130s)
+--- 09:52:11 watcher exited rc=0, reason:
+    check: rearm-resurface
+    drained+acked through row 0
+=== 09:52:13 watcher cycle 2 armed (budget 127s)
+--- 09:52:45 watcher exited rc=0, reason:
+    signal: /var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T//fm-lab.Isk44t/state/lab-done.status
+    drained+acked through row 11
+=== 09:52:47 watcher cycle 3 armed (budget 93s)
+--- 09:54:21 watcher still blocking at deadline (no actionable wake)
+=== 09:54:21 done after 3 cycle(s)
+--- triage log:
+[2026-10-07T09:53:04-0400] absorbed stale (finished delivery awaiting its registered PR merge poll): fm-lab-mpoll-61914-17628:w1:p1
+[2026-10-07T09:53:23-0400] absorbed stale (finished delivery awaiting its registered PR merge poll): fm-lab-mpoll-61914-17628:w1:p1
+[2026-10-07T09:53:49-0400] absorbed stale (finished delivery awaiting its registered PR merge poll): fm-lab-mpoll-61914-17628:w1:p1
+[2026-10-07T09:54:20-0400] absorbed stale (finished delivery awaiting its registered PR merge poll): fm-lab-mpoll-61914-17628:w1:p1
+[2026-10-07T09:54:20-0400] absorbed heartbeat (no captain-relevant change)

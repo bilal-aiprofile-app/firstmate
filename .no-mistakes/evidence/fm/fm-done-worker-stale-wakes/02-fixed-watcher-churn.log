@@ -1,0 +1,7 @@
+=== 09:46:50 watcher cycle 1 armed (budget 180s)
+--- 09:46:52 watcher exited rc=0, reason:
+    check: rearm-resurface
+    drained+acked through row 0
+=== 09:46:56 watcher cycle 2 armed (budget 174s)
+--- 09:49:51 watcher still blocking at deadline (no actionable wake)
+=== 09:49:51 done after 2 cycle(s)

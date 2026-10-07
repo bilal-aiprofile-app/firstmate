@@ -1,0 +1,19 @@
+=== 09:55:55 watcher cycle 1 armed (budget 90s)
+--- 09:55:56 watcher exited rc=0, reason:
+    check: rearm-resurface
+    drained+acked through row 0
+=== 09:55:58 watcher cycle 2 armed (budget 87s)
+--- 09:56:31 watcher exited rc=0, reason:
+    signal: /var/folders/c4/2mkfjhsx1yl01zvbp_6sztb40000gn/T//fm-lab.Isk44t/state/lab-done.status
+    drained+acked through row 16
+=== 09:56:33 watcher cycle 3 armed (budget 52s)
+--- 09:56:48 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 17
+=== 09:56:51 watcher cycle 4 armed (budget 34s)
+--- 09:57:13 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 18
+=== 09:57:15 watcher cycle 5 armed (budget 10s)
+--- 09:57:25 watcher still blocking at deadline (no actionable wake)
+=== 09:57:25 done after 5 cycle(s)

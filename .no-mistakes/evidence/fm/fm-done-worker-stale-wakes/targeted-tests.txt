@@ -1,0 +1,7 @@
+ok - a delivered task with a registered PR merge poll absorbs every new pane hash
+ok - a delivery without a registered merge poll, or a non-done event with one, still alarms on every new hash
+ok - a steer at or past a delivered task's status write lifts the merge-poll bound; an older one does not
+ok - a provably-working crew on a delivered task with a merge poll still wedge-escalates
+ok - an open captain call keeps its re-surface cadence with a merge poll registered
+ok - work under an open captain call surfaces once, absorbs pane churn, then re-surfaces when the window elapses
+ok - a stale window with no open captain call keeps alarming on every new hash

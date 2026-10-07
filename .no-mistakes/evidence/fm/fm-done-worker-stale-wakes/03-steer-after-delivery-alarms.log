@@ -1,0 +1,26 @@
+# handled steer record newer than status file:
+1791380619 state/lab-done.status
+1791381013 state/lab-done.inbox/handled/001.msg
+=== 09:50:20 watcher cycle 1 armed (budget 100s)
+--- 09:50:21 watcher exited rc=0, reason:
+    check: rearm-resurface
+    drained+acked through row 0
+=== 09:50:24 watcher cycle 2 armed (budget 96s)
+--- 09:50:38 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 6
+=== 09:50:40 watcher cycle 3 armed (budget 80s)
+--- 09:50:55 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 7
+=== 09:50:57 watcher cycle 4 armed (budget 63s)
+--- 09:51:20 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 8
+=== 09:51:23 watcher cycle 5 armed (budget 37s)
+--- 09:51:44 watcher exited rc=0, reason:
+    stale: fm-lab-mpoll-61914-17628:w1:p1
+    drained+acked through row 9
+=== 09:51:46 watcher cycle 6 armed (budget 14s)
+--- 09:52:00 watcher still blocking at deadline (no actionable wake)
+=== 09:52:00 done after 6 cycle(s)
