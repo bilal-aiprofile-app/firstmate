@@ -4294,6 +4294,45 @@ test_stale_churn_without_a_merge_poll_bound_still_alarms() {
   pass "a delivery without a registered merge poll, or a non-done event with one, still alarms on every new hash"
 }
 
+# A steer delivered after the `done:` line is new work the worker need not
+# answer with a status line, so a stall on it would otherwise go unsurfaced
+# until the PR merged. A handled or pending record at or past the status file's
+# last write alarms the first new hash as before; one older than it (the worker
+# delivered again after handling it) leaves the bound in force.
+test_merge_poll_bound_alarms_after_a_delivered_steer() {
+  local spec name where age expect dir state out capture rec wakes
+  for spec in \
+    "steer-handled|handled|60|1" \
+    "steer-pending|pending|60|1" \
+    "steer-older|handled|-600|0"
+  do
+    IFS='|' read -r name where age expect <<< "$spec"
+    dir=$(make_merge_poll_home "merge-poll-$name" \
+      "done: PR $MERGE_POLL_URL checks green" poll) \
+      || fail "[$name] could not build a delivered fixture with a registered merge poll"
+    state="$dir/state"; out="$dir/watch.out"; capture="$dir/pane.txt"
+    mkdir -p "$state/held-merge.inbox/handled"
+    if [ "$where" = handled ]; then
+      rec="$state/held-merge.inbox/handled/001.msg"
+    else
+      rec="$state/held-merge.inbox/001.msg"
+    fi
+    printf 'address the maintainer review\n' > "$rec"
+    set_mtime "$(( $(date +%s) + age ))" "$rec"
+    if [ "$expect" = 1 ]; then
+      hold_watch_surface "$dir" "$out" "$capture" 'idle after the steer, repaint 1' \
+        || fail "[$name] a delivered task stalled on a newer steer did not alarm on its first new hash"
+    else
+      hold_watch_churn "$dir" "$out" "$capture" 'idle after the steer, repaint' 2 \
+        || fail "[$name] a delivered task with only an older steer exited on pane churn: $(cat "$out")"
+    fi
+    wakes=$(hold_stale_wakes "$state")
+    [ "$wakes" -eq "$expect" ] \
+      || fail "[$name] produced $wakes stale wake(s) instead of $expect"
+  done
+  pass "a steer at or past a delivered task's status write lifts the merge-poll bound; an older one does not"
+}
+
 # A crew still provably working outranks the bound: a validation re-run on a
 # delivered task keeps its wedge timer and still escalates once it freezes.
 test_merge_poll_bound_keeps_a_working_crew_wedge_timer() {
@@ -6864,6 +6903,7 @@ test_failed_wake_append_does_not_arm_the_captain_hold_throttle
 test_reheld_captain_call_starts_its_own_resurface_window
 test_merge_poll_bounds_finished_stale_churn
 test_stale_churn_without_a_merge_poll_bound_still_alarms
+test_merge_poll_bound_alarms_after_a_delivered_steer
 test_merge_poll_bound_keeps_a_working_crew_wedge_timer
 test_open_captain_call_with_merge_poll_still_resurfaces
 test_secondmate_paused_resurfaces_in_normal_mode
