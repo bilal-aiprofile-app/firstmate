@@ -1,0 +1,12 @@
+ok - fm-meta-lib: every writer's keys are known
+ok - fm-meta-lib: a key no firstmate writer records is refused
+ok - fm-meta-lib: the vocabulary decides what may follow pr=
+# all fm-meta-lib tests passed
+ok - fm-review-check: refuses a forge PR, non-https, a pattern mismatch, an unsafe id, missing input, a non-external task, and an unbacked copy
+ok - fm-review-check: a secondmate home publishes the child's review-ready line to the parent channel
+ok - fm-review-check: recording a review keeps an armed merge poll authenticating
+# all fm-review-check tests passed
+ok - a refused remote relaunch leaves the parent's record untouched
+ok - a local secondmate is refused by the remote relaunch tool
+ok - a remote relaunch keeps an already-armed PR poll authenticating
+ALL TESTS PASSED
