@@ -1,0 +1,18 @@
+# S3 live adversarial: foreign key after pr= on a relaunched record is still refused by the real watcher
+## fm-control.sh rlfx relaunch
+relaunched rlfx harness=pi from=pi model=default effort=default backend=herdr endpoint=fm-lab-relaunch-pr-74643-330:w3:p2 worktree=/private/tmp/fmrl.B21EvV/slot3
+## state/rlfx.meta tail after relaunch + injected foreign line
+control_relaunch_tx=8642.20261117T192210Z.12609
+pr=https://github.com/example/lab-repo/pull/11
+pr_head=a82eedb72d320e8c71bc94906a1d050e68ac453c
+injected=value
+## watcher authenticator: merge poll authenticates: NO (record refused)
+## fm-watch.sh stdout with forge stand-in MERGED
+check: rejected unauthenticated state checks: /tmp/fm-lab.diICwK/state/rlfx.check.sh
+## forge reads during that run: (none - the poll was not executed)
+## durable wake queue
+1794943347	4	check	unauthenticated-state-checks	check: rejected unauthenticated state checks: /tmp/fm-lab.diICwK/state/rlfx.check.sh
+## foreign line removed; authenticator: merge poll authenticates: YES; fm-watch.sh stdout
+check: /tmp/fm-lab.diICwK/state/rlfx.check.sh: merged
+## forge reads during that run
+pr view https://github.com/example/lab-repo/pull/11 --json state --jq .state

@@ -1,0 +1,32 @@
+######## TREE: $W/headrepo
+=== S1: plain relaunch of a task with an armed PR
+fm-pr-check: armed: state/e1.check.sh
+before relaunch: AUTHENTICATED
+fm-control relaunch rc=0 :: relaunched e1 harness=claude from=claude model=default effort=default backend=tmux endpoint=fmses:fm-e1 worktree=$CASE/s1-7536/wt
+--- state/e1.meta (tail from pr=)
+pr=https://github.com/example/repo/pull/7
+pr_head=0123456789abcdef0123456789abcdef01234567
+after relaunch: AUTHENTICATED
+watcher rc=0 stdout=[check: $CASE/s1-7536/home/state/e1.check.sh: merged ] wake-queue-merge=[1]
+=== S2: record a review (fm-review-check), then relaunch
+fm-pr-check: armed: state/e2.check.sh
+after arm: AUTHENTICATED
+fm-review-check rc=0 :: recorded: review=https://review.example.test/r/8 (no merge watch: a human approves and merges the review; escalate it to the captain)
+after review: AUTHENTICATED
+fm-control relaunch rc=0 :: relaunched e2 harness=claude from=claude model=default effort=default backend=tmux endpoint=fmses:fm-e2 worktree=$CASE/s2-32220/wt
+--- state/e2.meta (tail from pr=)
+pr=https://github.com/example/repo/pull/8
+pr_head=0123456789abcdef0123456789abcdef01234567
+review=https://review.example.test/r/8
+review_head=2b6f93205ad33d746d3982cb27de92fd6d5b6cd6
+after relaunch: AUTHENTICATED
+watcher rc=0 stdout=[check: $CASE/s2-32220/home/state/e2.check.sh: merged ] wake-queue-merge=[1]
+=== S3 (adversarial): foreign key after pr= on a relaunched record
+fm-control relaunch rc=0 :: relaunched e3 harness=claude from=claude model=default effort=default backend=tmux endpoint=fmses:fm-e3 worktree=$CASE/s3-26866/wt
+after relaunch: AUTHENTICATED
+--- state/e3.meta (tail from pr=)
+pr=https://github.com/example/repo/pull/9
+pr_head=0123456789abcdef0123456789abcdef01234567
+injected=value
+after foreign key: REFUSED
+watcher rc=0 stdout=[check: rejected unauthenticated state checks: $CASE/s3-26866/home/state/e3.check.sh ] wake-queue-merge=[0]

@@ -1,0 +1,30 @@
+# S2 live attempt: review= after pr= on a forge=external lane
+## fm-spawn.sh rlrv (forge=external, direct-PR)
+spawned rlrv harness=pi kind=ship mode=direct-PR yolo=off window=fm-lab-relaunch-pr-74643-330:w2:p2 worktree=/private/tmp/fmrl.B21EvV/slot2
+## fm-pr-check.sh rlrv https://github.com/example/lab-repo/pull/9
+error: this project ships through an external review tool, so the ready report is `review <url> uploaded for review`, never a PR
+## fm-review-check.sh rlrv https://review.example.test/r/9
+recorded: review=https://review.example.test/r/9 (no merge watch: a human approves and merges the review; escalate it to the captain)
+## resulting state/rlrv.meta (no pr= line exists, so there is no merge watch to keep)
+window=fm-lab-relaunch-pr-74643-330:w2:p2
+endpoint_task_id=rlrv
+worktree=/private/tmp/fmrl.B21EvV/slot2
+project=/private/tmp/fmrl.B21EvV/project
+harness=pi
+kind=ship
+mode=direct-PR
+yolo=off
+branch=fm/rlrv
+tasktmp=/tmp/fm-rlrv
+forge=external
+model=default
+effort=default
+busy_gen=g1794943265.25410.1041
+spawn_gen=s1794943266.9137.3650
+backend=herdr
+herdr_session=fm-lab-relaunch-pr-74643-330
+herdr_workspace_id=w2
+herdr_tab_id=w2:t2
+herdr_pane_id=w2:p2
+review=https://review.example.test/r/9
+review_head=a82eedb72d320e8c71bc94906a1d050e68ac453c

@@ -1,0 +1,74 @@
+# S1 live: real Herdr 0.9.5 lab session + real pi worker + real fm-control relaunch + real fm-watch.sh
+## spawn
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+spawned rlpr harness=pi kind=ship mode=no-mistakes yolo=off window=fm-lab-relaunch-pr-74643-330:w1:p2 worktree=/private/tmp/fmrl.B21EvV/slot
+## fm-pr-check.sh rlpr https://github.com/example/lab-repo/pull/7 (forge stand-in reports OPEN)
+armed: state/rlpr.check.sh
+## state/rlpr.meta before relaunch
+window=fm-lab-relaunch-pr-74643-330:w1:p2
+endpoint_task_id=rlpr
+worktree=/private/tmp/fmrl.B21EvV/slot
+project=/private/tmp/fmrl.B21EvV/project
+harness=pi
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/rlpr
+tasktmp=/tmp/fm-rlpr
+model=default
+effort=default
+busy_gen=g1794943057.4488.20065
+spawn_gen=s1794943057.99063.10588
+backend=herdr
+herdr_session=fm-lab-relaunch-pr-74643-330
+herdr_workspace_id=w1
+herdr_tab_id=w1:t2
+herdr_pane_id=w1:p2
+pr=https://github.com/example/lab-repo/pull/7
+pr_head=a82eedb72d320e8c71bc94906a1d050e68ac453c
+## fm-control.sh rlpr relaunch --note 'address review feedback'
+relaunched rlpr harness=pi from=pi model=default effort=default backend=herdr endpoint=fm-lab-relaunch-pr-74643-330:w1:p2 worktree=/private/tmp/fmrl.B21EvV/slot
+## state/rlpr.meta after relaunch
+window=fm-lab-relaunch-pr-74643-330:w1:p2
+endpoint_task_id=rlpr
+worktree=/private/tmp/fmrl.B21EvV/slot
+project=/private/tmp/fmrl.B21EvV/project
+harness=pi
+kind=ship
+mode=no-mistakes
+yolo=off
+branch=fm/rlpr
+tasktmp=/tmp/fm-rlpr
+model=default
+effort=default
+busy_gen=g1794943114.77264.2182
+spawn_gen=s1794943115.75434.8085
+backend=herdr
+herdr_session=fm-lab-relaunch-pr-74643-330
+herdr_workspace_id=w1
+herdr_tab_id=w1:t2
+herdr_pane_id=w1:p2
+control_relaunch_tx=64172.20261117T191833Z.9984
+pr=https://github.com/example/lab-repo/pull/7
+pr_head=a82eedb72d320e8c71bc94906a1d050e68ac453c
+## watcher authenticator (fm_pr_poll_artifacts_valid) after relaunch
+merge poll authenticates: YES
+## forge stand-in flipped to MERGED; fm-watch.sh stdout
+check: /tmp/fm-lab.diICwK/state/rlpr.check.sh: merged
+## forge reads during that watcher run
+pr view https://github.com/example/lab-repo/pull/7 --json state --jq .state
+pr view https://github.com/example/lab-repo/pull/9 --json isDraft
+pr view https://github.com/example/lab-repo/pull/9 --json headRefOid -q .headRefOid
+## fm-wake-drain.sh (durable wake queue)
+1794943195	2	check	merged-rlpr-https://github.com/example/lab-repo/pull/7	check: merge landed: rlpr https://github.com/example/lab-repo/pull/7 external
+
+## herdr pane read w1:p2 after relaunch (real pi TUI; second launch generation is the post-relaunch spawn_gen)
+❯ export COMPACT_ADVISER_DISABLE=1
+❯ export FM_TASK_ID=rlpr
+slot. '/tmp/fm-rlpr+e8d6e9a7bd2690540290503be099ef38bc2e8812bd0558597a9a8464ca17ff98/launch.s1794943057.99063.10588.sh'
+❯ cd -- '/private/tmp/fmrl.B21EvV/slot'
+❯ export GOTMPDIR=/tmp/fm-rlpr/gotmp
+❯ export COMPACT_ADVISER_DISABLE=1
+❯ export FM_TASK_ID=rlpr
+❯ . '/tmp/fm-rlpr+e8d6e9a7bd2690540290503be099ef38bc2e8812bd0558597a9a8464ca17ff98/launch.s1794943115.75434.8085.sh'
+{"agent":"pi","agent_status":"idle"}
